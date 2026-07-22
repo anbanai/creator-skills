@@ -20,11 +20,22 @@ Professional **WeChat** and **Seednote (种草笔记)** content creation toolkit
 
 ### 1. Install the plugin
 
-From a local clone:
+Codex marketplace Git sources do not initialize nested submodules. Use a local
+clone and initialize Humanizer before registering the marketplace. From the
+Anban Writer repository root:
+
+```bash
+git submodule update --init --recursive plugins
+test -f plugins/skills/humanizer/SKILL.md
+```
+
+For a standalone `anbanai/creator-skills` clone, run
+`git submodule update --init --recursive` inside that clone instead. Then install
+from the initialized local path:
 
 ```bash
 codex plugin marketplace add ./plugins
-codex plugin install anban
+codex plugin add anban@anbanai
 ```
 
 ### 2. Install the subagents

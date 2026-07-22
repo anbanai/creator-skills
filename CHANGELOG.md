@@ -4,6 +4,14 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [3.0.1] - 2026-07-22
+
+### Changed
+
+- Replaced the copied Humanizer Skill with the official `blader/humanizer` repository pinned directly at `skills/humanizer` as a nested submodule.
+- Kept Humanizer inside the Anban plugin for offline, reproducible Agent images and moved its manual update command into Creator Skills.
+- Documented recursive local checkout as a Codex installation prerequisite because Codex marketplace Git clones do not initialize nested submodules.
+
 ## [3.0.0] - 2026-07-22
 
 ### Changed

@@ -157,13 +157,13 @@ reference-usage-summary.json
 
 调用 update_task_progress(task_id=$TASK_ID, stage="writing", title="内容写作", description="生成标题、正文和话题标签并去 AI 味")。using the seednote-writing skill 基于账号画像和 $DIR/topic-analysis.md 生成标题、正文和话题标签，保存到 $DIR/content.md。标题、正文格式和话题标签规范以 seednote-writing skill 为准。
 
-随后 using the humanizer skill 对 $DIR/content.md 的标题+正文做轻量去 AI 改写：重点去掉空洞升华、三段式套话、AI 高频词、过度总结，保留种草笔记的人称代入与情绪节奏（见 seednote-writing skill §2.7）。这是自动流水线步骤，不得调用 AskUserQuestion；没有写作样本时直接按账号画像和当前稿件语气改写。改写后复核字数仍 ≤1000 字，且不得引入新的违禁词、虚假承诺或诱导互动表达。直接覆写 $DIR/content.md。
+随后继续使用 seednote-writing skill §2.7 的内置轻量去 AI 流程处理 $DIR/content.md 的标题+正文：重点去掉空洞升华、三段式套话、AI 高频词、过度总结，保留种草笔记的人称代入与情绪节奏。这是自动流水线步骤，不得调用 AskUserQuestion；没有写作样本时直接按账号画像和当前稿件语气改写。改写后复核字数仍 ≤1000 字，且不得引入新的违禁词、虚假承诺或诱导互动表达。直接覆写 $DIR/content.md。
 
 **产出**：$DIR/content.md
 
 #### 步骤 6b：标题终稿锁定
 
-从 $DIR/content.md 第一行读取可发布标题为 $FINAL_TITLE，在任何图片规划或生成前调用 finalize_task_title(task_id=$TASK_ID, title=$FINAL_TITLE)，最多尝试 3 次。返回重复标题时先更新 content.md 第一行，重跑 humanizer 与标题合规后再重试；非重复错误或连续 3 次重复时写入 $DIR/failure-state.json：`{"version":"1.0","status":"recoverable_failure","stage":"title_finalization","error_code":"<stable_code>","message":"<原始错误摘要>","resume_from":"title_finalization"}`。非重复错误使用 error_code="finalize_title_failed"，重复耗尽使用 error_code="duplicate_title_exhausted"；随后停止，不得进入图片生成。成功后以服务端接受标题锁定 $FINAL_TITLE，后续视觉、合规、交付校验和最终报告不得静默改名。
+从 $DIR/content.md 第一行读取可发布标题为 $FINAL_TITLE，在任何图片规划或生成前调用 finalize_task_title(task_id=$TASK_ID, title=$FINAL_TITLE)，最多尝试 3 次。返回重复标题时先更新 content.md 第一行，重跑 seednote-writing 内置去 AI 与标题合规后再重试；非重复错误或连续 3 次重复时写入 $DIR/failure-state.json：`{"version":"1.0","status":"recoverable_failure","stage":"title_finalization","error_code":"<stable_code>","message":"<原始错误摘要>","resume_from":"title_finalization"}`。非重复错误使用 error_code="finalize_title_failed"，重复耗尽使用 error_code="duplicate_title_exhausted"；随后停止，不得进入图片生成。成功后以服务端接受标题锁定 $FINAL_TITLE，后续视觉、合规、交付校验和最终报告不得静默改名。
 
 #### 步骤 7：生成图片
 
@@ -191,13 +191,13 @@ reference-usage-summary.json
 
 调用 update_task_progress(task_id=$TASK_ID, stage="writing", title="内容写作", description="基于爆款模板改写标题、正文和话题标签并去 AI 味")。using the seednote-writing skill 读取 $DIR/viral-template.json，根据 recommended_clone_depth、用户指定模式和账号画像生成标题、正文和话题标签。若用户指定强度高于模板建议，但 confidence=low 或 do_not_copy 风险高，自动降级并记录原因。内容相似度过高时重新改写角度并记录原因。
 
-随后 using the humanizer skill 对 $DIR/content.md 的标题+正文做轻量去 AI 改写：重点去掉空洞升华、三段式套话、AI 高频词、过度总结，保留种草笔记的人称代入与情绪节奏（见 seednote-writing skill §2.7）。这是自动流水线步骤，不得调用 AskUserQuestion；没有写作样本时直接按账号画像和当前稿件语气改写。改写后复核字数仍 ≤1000 字，且不得引入新的违禁词、虚假承诺或诱导互动表达。直接覆写 $DIR/content.md。
+随后继续使用 seednote-writing skill §2.7 的内置轻量去 AI 流程处理 $DIR/content.md 的标题+正文：重点去掉空洞升华、三段式套话、AI 高频词、过度总结，保留种草笔记的人称代入与情绪节奏。这是自动流水线步骤，不得调用 AskUserQuestion；没有写作样本时直接按账号画像和当前稿件语气改写。改写后复核字数仍 ≤1000 字，且不得引入新的违禁词、虚假承诺或诱导互动表达。直接覆写 $DIR/content.md。
 
 **产出**：$DIR/content.md
 
 #### 步骤 7b：标题终稿锁定
 
-从 $DIR/content.md 第一行读取可发布标题为 $FINAL_TITLE，在任何图片规划或生成前调用 finalize_task_title(task_id=$TASK_ID, title=$FINAL_TITLE)，最多尝试 3 次。返回重复标题时先更新 content.md 第一行，重跑 humanizer 与标题合规后再重试；非重复错误或连续 3 次重复时写入 $DIR/failure-state.json：`{"version":"1.0","status":"recoverable_failure","stage":"title_finalization","error_code":"<stable_code>","message":"<原始错误摘要>","resume_from":"title_finalization"}`。非重复错误使用 error_code="finalize_title_failed"，重复耗尽使用 error_code="duplicate_title_exhausted"；随后停止，不得进入图片生成。成功后以服务端接受标题锁定 $FINAL_TITLE，后续视觉、合规、交付校验和最终报告不得静默改名。
+从 $DIR/content.md 第一行读取可发布标题为 $FINAL_TITLE，在任何图片规划或生成前调用 finalize_task_title(task_id=$TASK_ID, title=$FINAL_TITLE)，最多尝试 3 次。返回重复标题时先更新 content.md 第一行，重跑 seednote-writing 内置去 AI 与标题合规后再重试；非重复错误或连续 3 次重复时写入 $DIR/failure-state.json：`{"version":"1.0","status":"recoverable_failure","stage":"title_finalization","error_code":"<stable_code>","message":"<原始错误摘要>","resume_from":"title_finalization"}`。非重复错误使用 error_code="finalize_title_failed"，重复耗尽使用 error_code="duplicate_title_exhausted"；随后停止，不得进入图片生成。成功后以服务端接受标题锁定 $FINAL_TITLE，后续视觉、合规、交付校验和最终报告不得静默改名。
 
 #### 步骤 8：生成图片
 

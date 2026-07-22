@@ -163,9 +163,10 @@ Classify a Skill before editing it:
 
 - Self-authored assets follow this repository's prompt lint, progressive
   disclosure, eval, ownership, manifest, and changelog rules.
-- Upstream mirrors preserve upstream bytes and are updated through source,
-  version, and parity checks. `humanizer` remains an unchanged upstream mirror;
-  business rules belong in the owning Agent or Skill.
+- Upstream submodules preserve upstream history and bytes and are updated
+  through source, version, and gitlink checks. `skills/humanizer` points
+  directly to the official `blader/humanizer` repository; business rules
+  belong in the owning Agent or Skill.
 - Third-party runtime assets use their own update and verification process.
   `third_party/OpenMontage` remains governed
   as an external runtime/submodule, not copied into Agent text.
