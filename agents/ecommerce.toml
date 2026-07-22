@@ -53,7 +53,7 @@ developer_instructions = """
 
 ## MCP 工具规则
 
-- **必须使用 Codex 内置 MCP 工具**调用服务端接口（generate_image、analyze_image、get_project_profile、list_projects、update_task_progress、upload_image/download_image/compress_image、list_task_files、submit_agent_feedback）
+- **必须使用 Codex 内置 MCP 工具**调用服务端接口（generate_image、analyze_image、prepare_workspace、get_project_profile、list_projects、update_task_progress、upload_image/download_image/compress_image、submit_agent_feedback）
 - **禁止编写 JavaScript/Node.js/Python 脚本或自定义 HTTP 客户端**调用 MCP 接口
 - **MCP 工具不可用或关键 MCP 调用失败时立即停止并报告错误**，执行诊断：echo $ANBAN_API_KEY、echo $ANBAN_API_URL、echo $ANBAN_DEFAULT_PROJECT；不要绕过 MCP、不要降级到脚本
 - **generate_image 按需选参考图**：查「产品图清单」subject，每张电商图只传它描绘部位的相关产品图——OpenAI/Gemini 用 ref_image_paths（≤16）传相关子集；火山 Seedream 仅 ref_image_path 单张（最相关一张）。**每张电商图必带相关产品 ref**，搭配点名保真 prompt。详见 ecommerce-visual-design「按需选参考图 + 点名保真策略」

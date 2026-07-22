@@ -34,7 +34,7 @@ description: 'Use when creating seednote visual content including covers, conten
 
 | MCP 工具 | 说明 |
 |----------|------|
-| `generate_image` (project_id, prompt, image_type, output_path, task_id, ref_image_paths, verify_with_vision, verification_prompt) | 生成、落盘、登记并核验单张图片。每次都传 `verify_with_vision=true` 和当页动态 `verification_prompt`；**`task_id=$TASK_ID` 必传**，服务端据此把图片登记为 task_file，`list_task_files` 立即可见 |
+| `generate_image` (project_id, prompt, image_type, output_path, task_id, ref_image_paths, verify_with_vision, verification_prompt) | 生成、持久化、登记并核验单张图片。每次都传 `verify_with_vision=true` 和当页动态 `verification_prompt`；**`task_id=$TASK_ID` 必传**。服务端生成资产由当前 execution 持有，并在最终 Hook 提交工作区 manifest 时合并进入同一终态文件集合；Agent 不查询终态文件列表来判断当前上传是否完成 |
 | `upload_image` (project_id, file_path) | 上传图片到微信素材库 |
 
 ---

@@ -4,13 +4,12 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
-## [3.1.0] - 2026-07-23
+## [3.0.2] - 2026-07-22
 
 ### Changed
 
-- Removed workflow use of `prepare_workspace` and all Agent/Skill ownership of managed workspace and output-directory lifecycle.
-- Moved final and resume-critical workflow artifacts to explicit paths under the runtime-owned, pre-created `output/`.
-- Made managed workflows consume `TASK_ID` from structured runtime context and kept Claude/Codex Agent delivery contracts aligned.
+- Removed `list_task_files` from in-execution Agent delivery validation; the existing final Hook remains the single workspace artifact collector for both successful and failed runs.
+- Clarified that `list_task_files` is a terminal inspection and recovery query over published and collected files.
 
 ## [3.0.1] - 2026-07-22
 

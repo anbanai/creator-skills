@@ -64,7 +64,7 @@ maxTurns: 120
 
 ## MCP 工具规则
 
-- **必须使用 Claude Code 内置 MCP 工具**调用服务端接口（`generate_image`、`analyze_image`、`get_project_profile`、`list_projects`、`update_task_progress`、`upload_image`/`download_image`/`compress_image`、`list_task_files`、`submit_agent_feedback`）
+- **必须使用 Claude Code 内置 MCP 工具**调用服务端接口（`generate_image`、`analyze_image`、`prepare_workspace`、`get_project_profile`、`list_projects`、`update_task_progress`、`upload_image`/`download_image`/`compress_image`、`submit_agent_feedback`）
 - **禁止编写 JavaScript/Node.js/Python 脚本或自定义 HTTP 客户端**调用 MCP 接口
 - **MCP 工具不可用或关键 MCP 调用失败时立即停止并报告错误**，执行诊断：用 `test -n "$ANBAN_API_KEY"` 只检查密钥是否存在，不打印密钥值；可记录 `ANBAN_API_URL` 和 `ANBAN_DEFAULT_PROJECT` 是否存在；不要绕过 MCP、不要降级到脚本
 - **Claude Code subagent 的 `tools:` 字段是 allowlist**——不要在本 agent frontmatter 声明 `tools:`，省略才能继承包含 MCP 在内的工具；若运行时看不到 `generate_image` 等 MCP 能力，停止并报告 MCP 未注入
