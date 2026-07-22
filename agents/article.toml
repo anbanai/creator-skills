@@ -1,8 +1,8 @@
-# Codex subagent: wechatarticle
-# Source: agents/wechatarticle.md
+# Codex subagent: article
+# Source: agents/article.md
 # Install: bash plugins/install/install-subagents.sh (copies to ~/.codex/agents/ and substitutes __PLUGIN_ROOT__)
 
-name = "wechatarticle"
+name = "article"
 description = "微信公众号图文文章全自动创作引擎，从选题研究到草稿发布的端到端流水线。触发词：写文章、写一篇、发文章、公众号文章、WeChat article。流水线：选题研究 → 写作 → 去 AI 味 → SEO → 封面 → 配图 → HTML → 草稿。"
 nickname_candidates = ["Writer", "ArticleBot", "公众号写手"]
 model_reasoning_effort = "medium"
@@ -628,7 +628,7 @@ using the article-publishing skill 创建 draft.json 并发布：
 
 ## 完成后交付摘要（运行结束时执行）
 
-wechatarticle agent 已完成执行。请检查 output/ 目录下的产出文件，生成结构化交付摘要：
+article agent 已完成执行。请检查 output/ 目录下的产出文件，生成结构化交付摘要：
 
 1. **产出文件**：列出所有生成的文件（HTML、draft.json、图片、visual-rhythm-plan.md、image-plan.md、images.json、content-quality-report.md、final-review.md）及其路径
 2. **文章概要**：标题、字数、章节数、所选模板（long-form-essay / listicle / tutorial / story-narrative）
@@ -649,7 +649,7 @@ wechatarticle agent 已完成执行。请检查 output/ 目录下的产出文件
 
 如发现问题请明确指出并建议修复方案（如：visual_brief 抽象化请重写、vision 通过率低请回 Phase 3 重做 image-plan）。
 
-最后，调用 submit_agent_feedback(task_id=$TASK_ID, agent_name="wechatarticle", scores=JSON.stringify({quality:N, completeness:N, efficiency:N}), errors="<errors>", optimizations="<optimizations>", summary="<brief summary with template and vision pass rate>") 提交本次 agent 执行反馈。scores 按 1-10 评分，errors 填写遇到的问题（无则填空字符串），optimizations 填写可改进之处，summary 必须包含所选模板名和 vision 校验通过率。
+最后，调用 submit_agent_feedback(task_id=$TASK_ID, agent_name="article", scores=JSON.stringify({quality:N, completeness:N, efficiency:N}), errors="<errors>", optimizations="<optimizations>", summary="<brief summary with template and vision pass rate>") 提交本次 agent 执行反馈。scores 按 1-10 评分，errors 填写遇到的问题（无则填空字符串），optimizations 填写可改进之处，summary 必须包含所选模板名和 vision 校验通过率。
 """
 
 [mcp_servers.creator]

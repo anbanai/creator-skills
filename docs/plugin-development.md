@@ -47,9 +47,9 @@ Do not add a `tools` allowlist to agents that need MCP tools; Claude Code treats
 
 Do not add `mcpServers` to plugin agent frontmatter. Plugin subagents receive MCP servers from the plugin-level `.mcp.json`; Claude Code ignores `permissionMode`, `mcpServers`, and `hooks` in plugin Agent definitions. Managed lifecycle Hooks are installed by the server SDK path.
 
-The nine Agent identities accepted by `submit_agent_feedback` are `designer`,
-`designer`, `ecommerce`, `live-slicer`, `moments`, `montage`, `seednote`, and
-`wechatarticle`. Each Agent owns exactly one final feedback
+The seven Agent identities accepted by `submit_agent_feedback` are `article`,
+`designer`, `ecommerce`, `live-slicer`, `moments`, `montage`, and `seednote`.
+Each Agent owns exactly one final feedback
 call after its delivery report.
 
 ### Designer runtime contract

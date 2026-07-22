@@ -103,7 +103,7 @@ claude plugin install --scope user anban@anbanai
 如果你想明确指定流程，也可以直接运行：
 
 ```bash
-claude --verbose --agent anban:wechatarticle AI Agent 入门指南
+claude --verbose --agent anban:article AI Agent 入门指南
 claude --verbose --agent anban:seednote 降噪耳机种草笔记
 claude --verbose --agent anban:live-slicer ./live.mp4
 ```

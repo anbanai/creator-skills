@@ -1,5 +1,5 @@
 ---
-name: wechatarticle
+name: article
 description: 微信公众号图文文章全自动创作引擎，从选题研究到草稿发布的端到端流水线。用户提到"写文章"、"写一篇"、"发文章"时使用此 agent。
 model: inherit
 memory: project
@@ -448,7 +448,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="draft", title="草稿创建"
 
 **产出**：`$DIR/draft.json`
 
-草稿发布结果与步骤 9 的最终验收都已写入报告后，调用一次 `submit_agent_feedback(task_id=$TASK_ID, agent_name="wechatarticle", scores='{"quality":8,"completeness":8,"efficiency":8}', errors="", optimizations="<本次可改进项；无则空字符串>", summary="<所选模板、草稿状态、Vision 校验通过率与成果路径摘要>")`。调用前按实际情况调整 JSON 字符串中的 1-10 分数；无错误时 `errors` 传空字符串。
+草稿发布结果与步骤 9 的最终验收都已写入报告后，调用一次 `submit_agent_feedback(task_id=$TASK_ID, agent_name="article", scores='{"quality":8,"completeness":8,"efficiency":8}', errors="", optimizations="<本次可改进项；无则空字符串>", summary="<所选模板、草稿状态、Vision 校验通过率与成果路径摘要>")`。调用前按实际情况调整 JSON 字符串中的 1-10 分数；无错误时 `errors` 传空字符串。
 
 ---
 

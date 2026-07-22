@@ -28,14 +28,14 @@ The plugin follows Codex's **Skill + Subagent + MCP** model:
 
 | Subagent | Triggers | Pipeline |
 |----------|----------|----------|
-| `wechatarticle` | "写文章", "发文章", "公众号文章" | Research → Write → De-AI → SEO → Cover → Illustrations → HTML → Draft |
+| `article` | "写文章", "发文章", "公众号文章" | Research → Write → De-AI → SEO → Cover → Illustrations → HTML → Draft |
 | `seednote` | "种草笔记", "种草", "复刻", "仿写" | Research → Viral analysis (replicate) → Content → image-plan/runtime mode output → Compliance → Delivery validation → `$DIR` delivery |
 | `live-slicer` | "直播切片", "剪直播", "听悟" | ffmpeg prep → TingWu transcription → Invalid sentence filter → Segment/subject planning → Batch cuts/concat → CapCut export → Report |
 | `designer` | "上色", "填色", "线稿", "color consistency", "designer" | Init → Progressive coloring → Full audit → Best-effort correction/backtracking → Report with `needs_img2img` where strict line preservation is impossible |
 | `ecommerce` | "电商出图", "商品图", "主图", "详情页", "商详", "SKU图" | Product Bible → Selling points → Asset plan → Provider-adaptive generation → Vision self-check → Delivery validation → `$DIR` delivery |
 
 **Codex-specific behavior**:
-- Subagents only spawn when the user **explicitly** asks ("use the wechatarticle subagent to ...", "delegate to X"). Codex does not auto-spawn subagents.
+- Subagents only spawn when the user **explicitly** asks ("use the article subagent to ...", "delegate to X"). Codex does not auto-spawn subagents.
 - Each subagent declares its own `[mcp_servers.creator]` and `[[skills.config]]` — it does **not** inherit MCP servers or skills from the parent session.
 - Multi-agent mode requires `[features] multi_agent = true` in `~/.codex/config.toml` (the install script adds this automatically).
 - `[agents] max_threads = 7` bounds concurrent subagent execution.
@@ -88,7 +88,7 @@ The current Codex plugin manifest does not accept bundled Hooks. Each TOML subag
 - **Skill references**: Subagents invoke skills via `using the <skill-name> skill` phrasing, not the Skill tool.
 - **Content is Chinese**: All generated content targets Chinese social media platforms. Prohibited words lists (违禁词) are in `references/prohibited-words.md`.
 - **Live media dependency**: `live-slicer` and `live-slice` require local `ffmpeg` and `ffprobe`; TingWu provides transcription.
-- **Subagent invocation**: Codex subagents do NOT auto-spawn. To run a full pipeline, the user must explicitly invoke: "use the wechatarticle subagent to write an article about X" or "delegate to designer: colorize line art at /path".
+- **Subagent invocation**: Codex subagents do NOT auto-spawn. To run a full pipeline, the user must explicitly invoke: "use the article subagent to write an article about X" or "delegate to designer: colorize line art at /path".
 
 ## Modifying This Plugin
 

@@ -64,6 +64,9 @@ fi
 
 mkdir -p "$CODEX_AGENTS_DIR"
 
+legacy_article_agent="wechat""article"
+rm -f "$CODEX_AGENTS_DIR/${legacy_article_agent}.toml"
+
 for toml in "$AGENTS_SRC"/*.toml; do
   name="$(basename "$toml")"
   target="$CODEX_AGENTS_DIR/$name"
@@ -86,14 +89,25 @@ else
 
   # Idempotent merge: append top-level keys, append missing tables,
   # AND append missing keys within existing tables (key-level merge for [features], [agents]).
-  python3 - "$REGISTRATION_SRC" "$tmp" <<'PY'
+  python3 - "$REGISTRATION_SRC" "$tmp" "$legacy_article_agent" <<'PY'
 import re, sys
-reg_path, tmp_path = sys.argv[1], sys.argv[2]
+reg_path, tmp_path, legacy_article_agent = sys.argv[1], sys.argv[2], sys.argv[3]
 reg_lines = open(reg_path).read().splitlines()
 tmp_lines = open(tmp_path).read().splitlines()
 
 HEADER_RE = re.compile(r'^\s*(\[[^\]]+\])\s*$')
 KV_RE = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=')
+
+legacy_header = f'[agents.{legacy_article_agent}]'
+filtered_lines = []
+skip_legacy_table = False
+for line in tmp_lines:
+    header_match = HEADER_RE.match(line)
+    if header_match:
+        skip_legacy_table = header_match.group(1) == legacy_header
+    if not skip_legacy_table:
+        filtered_lines.append(line)
+tmp_lines = filtered_lines
 
 # Parse target file into: { header_name: [list of kv keys] }
 # Top-level (no header) is stored under "".
@@ -217,4 +231,4 @@ echo "  3. Verify with:"
 echo "       /agents        # should list 7 Anban Creator subagents"
 echo "       /skills        # should list Anban Creator skills"
 echo "  4. Trigger explicitly:"
-echo "       use the wechatarticle subagent to write an article about X"
+echo "       use the article subagent to write an article about X"

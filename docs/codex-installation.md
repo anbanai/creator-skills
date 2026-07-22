@@ -71,7 +71,7 @@ Expected: Anban Creator skills listed (article, content-writing, seednote, ecomm
 /agents
 ```
 
-Expected: 7 subagents listed (wechatarticle, seednote, moments, montage, designer, live-slicer, ecommerce) with their nicknames.
+Expected: 7 subagents listed (article, seednote, moments, montage, designer, live-slicer, ecommerce) with their nicknames.
 
 ```
 $anban-setup
@@ -96,7 +96,7 @@ Codex's main agent detects the request, loads `article`, `content-writing`, `top
 For end-to-end runs that produce a complete publishable artifact, delegate to a subagent:
 
 ```
-use the wechatarticle subagent to write a 3000-word article about Rust ownership
+use the article subagent to write a 3000-word article about Rust ownership
 ```
 
 ```
@@ -121,7 +121,7 @@ using the article-visual-design skill, generate a 2.35:1 cover for the article a
 
 | Subagent | What it produces |
 |----------|-----------------|
-| `wechatarticle` | Researched outline → final Markdown → WeChat-safe HTML → uploaded cover + content images → published draft |
+| `article` | Researched outline → final Markdown → WeChat-safe HTML → uploaded cover + content images → published draft |
 | `seednote` | Topic/viral analysis → Markdown note (title + body + hashtags) → image-plan/runtime mode output → delivery validation → `$DIR` delivery |
 | `designer` | Per-lineart `colored_NN.png` + Color Bible + consistency report (PASS/MINOR/FAIL per entity) + manual-review flags |
 | `live-slicer` | metadata.json + audio.mp3 + cover.jpg + TingWu analysis + filtered sentences + clip plan + exported MP4s + CapCut drafts + transcript.md + summary.md |
@@ -132,7 +132,7 @@ using the article-visual-design skill, generate a 2.35:1 cover for the article a
 ### `/agents` shows nothing
 
 - Confirm `~/.codex/agents/*.toml` contains the 7 Anban subagents.
-- Confirm `~/.codex/config.toml` contains `[agents.wechatarticle]` etc.
+- Confirm `~/.codex/config.toml` contains `[agents.article]` etc.
 - Confirm `[features] multi_agent = true` is in `config.toml`.
 - Fully restart Codex (not just reload).
 

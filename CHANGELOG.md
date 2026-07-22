@@ -4,6 +4,12 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [3.0.0] - 2026-07-22
+
+### Changed
+
+- Renamed the WeChat article Agent and Codex subagent from `wechatarticle` to `article`, including the scoped `anban:article` invocation, installer registration, feedback identity, and documentation. The former Agent name is removed rather than retained as an alias.
+
 ## [2.12.1] - 2026-07-22
 
 ### Changed
