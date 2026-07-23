@@ -80,20 +80,36 @@ if plan_path.is_file():
         missing.append("output/image-plan.md 缺「计划图片数量」字段（说明 skill 步骤 3 未执行）")
     else:
         expected = int(match.group(1))
-        images = [
+        content_candidates = [
             p
             for p in seednote_dir.iterdir()
-            if p.is_file()
-            and (p.name == "cover.png" or p.name == "tail.png" or re.fullmatch(r"image_.*\.png", p.name))
+            if p.is_file() and p.name.startswith("image_")
+        ]
+        content_pattern = re.compile(r"image_0[1-3]\.png")
+        invalid_content_names = sorted(
+            p.name for p in content_candidates if not content_pattern.fullmatch(p.name)
+        )
+        if invalid_content_names:
+            missing.append(
+                "非规范内容图文件名（只允许 image_01.png、image_02.png、image_03.png）："
+                + ", ".join(invalid_content_names)
+            )
+        content_images = [p for p in content_candidates if content_pattern.fullmatch(p.name)]
+        content_names = sorted(p.name for p in content_images)
+        expected_content_names = [f"image_{index:02d}.png" for index in range(1, len(content_names) + 1)]
+        if content_names != expected_content_names:
+            missing.append(
+                "内容图编号必须从 image_01.png 开始连续且不得跳号"
+                f"（当前 {content_names}，应为 {expected_content_names}）"
+            )
+        images = content_images + [
+            p for name in ("cover.png", "tail.png") if (p := seednote_dir / name).is_file()
         ]
         image_count = len(images)
         if image_count != expected:
             missing.append(f"图片数量（当前 {image_count} 张，应等于 image-plan.md 声明的 {expected} 张）")
         if not (seednote_dir / "cover.png").is_file():
             missing.append("output/cover.png（封面必选）")
-        content_count = len([p for p in images if p.name.startswith("image_")])
-        if content_count > 3:
-            missing.append(f"内容图超过 3 张上限（当前 {content_count} 张，应 ≤3）")
 
 summary_path = seednote_dir / "reference-usage-summary.json"
 if summary_path.is_file():

@@ -4,6 +4,13 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [4.0.3] - 2026-07-23
+
+### Fixed
+
+- Made Seednote image-count quality rules explicitly allow zero content images in `cover_only` and `cover_tail` modes.
+- Restricted Seednote content images to the contiguous `image_01.png` through `image_03.png` naming contract and made the quality gate reject other `image_*` filenames or skipped indices.
+
 ## [4.0.2] - 2026-07-23
 
 ### Fixed
