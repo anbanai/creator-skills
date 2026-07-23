@@ -4,6 +4,12 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [4.0.2] - 2026-07-23
+
+### Fixed
+
+- Aligned the Claude and Codex Seednote Agents on the same explicit, mode-dependent output image paths for the cover, up to three content images, and optional tail image.
+
 ## [4.0.1] - 2026-07-23
 
 ### Fixed

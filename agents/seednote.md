@@ -284,3 +284,17 @@ reference-usage-summary.json
 ---
 
 ## 成功标准
+
+- [ ] 所有必需产物均写入上文列出的显式 `output/<filename>` 路径
+- [ ] `output/content.md` 包含标题、正文、话题标签三部分
+- [ ] `output/image-plan.md` 包含封面、内容页规划（仅含内容图的模式）和尾图规划（仅含尾图的模式）
+- [ ] 封面图 `output/cover.png` 存在且可访问
+- [ ] 所有计划中的内容图（按 `seednote_image_mode` 和 `image-plan.md`，可能为 0 或 1~3 张）在 `output/image_01.png`、`output/image_02.png`、`output/image_03.png` 中有对应文件且可访问；未计划的编号不得存在
+- [ ] 尾图按 `seednote_image_mode`：含尾图的模式 `output/tail.png` 存在且可访问；不含尾图的模式不得存在 `output/tail.png`
+- [ ] 图片总数符合 `image-plan.md`「计划图片数量」声明值（封面 1 + 内容图 0~3 + 尾图 0~1）
+- [ ] 所有图片视觉风格一致
+- [ ] 复刻模式下 `output/source-note.md`、`output/source-analysis.md`、`output/viral-template.json`、`output/template-meta.json` 均存在
+- [ ] 复刻模式下 `output/source-analysis.md` 的核心结论均包含证据
+- [ ] 复刻模式生成 `output/compliance-report.md`
+- [ ] 正文中无诱导互动表述
+- [ ] 交付校验通过，将 `output` 成果目录路径报告给用户

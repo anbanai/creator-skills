@@ -272,11 +272,11 @@ reference-usage-summary.json
 
 - [ ] 所有必需产物均写入下列显式 output/<filename> 路径
 - [ ] content.md 包含标题、正文、话题标签三部分
-- [ ] image-plan.md 包含封面 + 内容页规划
+- [ ] image-plan.md 包含封面、内容页规划（仅含内容图的模式）和尾图规划（仅含尾图的模式）
 - [ ] 封面图 output/cover.png 存在且可访问
-- [ ] 所有内容图 output/image_01.png ... output/image_03.png 存在且可访问
+- [ ] 所有计划中的内容图（按 seednote_image_mode 和 image-plan.md，可能为 0 或 1~3 张）在 output/image_01.png、output/image_02.png、output/image_03.png 中有对应文件且可访问；未计划的编号不得存在
 - [ ] 尾图按 seednote_image_mode：含尾图的模式 output/tail.png 存在且可访问；不含尾图的模式不得存在 tail.png
-- [ ] 图片总数符合 image-plan.md「计划图片数量」声明值（封面 1 + 内容图 1~3 + 尾图 0~1）
+- [ ] 图片总数符合 image-plan.md「计划图片数量」声明值（封面 1 + 内容图 0~3 + 尾图 0~1）
 - [ ] 所有图片视觉风格一致
 - [ ] 复刻模式下 source-note.md、source-analysis.md、viral-template.json、template-meta.json 均存在
 - [ ] 复刻模式下 source-analysis.md 的核心结论均包含证据
@@ -303,7 +303,7 @@ reference-usage-summary.json
 ### 文件组织
 
 - 最终与恢复关键产物使用下列显式 output/<filename> 路径
-- 图片命名：output/cover.png（封面）, output/image_01.png ... output/image_03.png（内容图，仅含内容图的模式）, output/tail.png（尾图，仅含尾图的模式）（N 由 image-plan.md 决定）
+- 图片命名：output/cover.png（封面）, output/image_01.png、output/image_02.png、output/image_03.png（内容图，仅含内容图的模式）, output/tail.png（尾图，仅含尾图的模式）（N 由 image-plan.md 决定）
 - 内容草稿：output/content.md（含标题/正文/话题标签）
 - 图片规划：output/image-plan.md（seednote-visual-design skill 内部产物）
 - 决策记录：output/topic-analysis.md（原创模式）或 output/source-analysis.md（复刻模式）
@@ -349,7 +349,7 @@ reference-usage-summary.json
 - 合规报告：output/compliance-report.md
 - 图片规划：output/image-plan.md
 - 封面图：output/cover.png
-- 内容图：output/image_01.png ... output/image_03.png
+- 内容图：output/image_01.png、output/image_02.png、output/image_03.png（仅含内容图的模式）
 - 尾图：output/tail.png（仅含尾图的模式）
 - 最终成果目录：output
 
