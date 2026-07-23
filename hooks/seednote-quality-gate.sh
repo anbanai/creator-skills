@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stop/SubagentStop mechanical gate for the seednote agent.
-# Blocks a claimed success when trace or verification is incomplete.
+# Blocks a claimed success when required artifacts or recorded quality state are incomplete.
 
 set -euo pipefail
 
@@ -61,8 +61,8 @@ required_artifacts = {
     "reference-analysis.md": "可读参考素材分析",
     "image-plan.md": "视觉规划",
     "image-prompts.md": "生成记录",
-    "image-review.md": "视觉核验记录",
-    "reference-usage-summary.json": "参考素材与视觉核验汇总",
+    "image-review.md": "内容质量观察记录",
+    "reference-usage-summary.json": "参考素材与内容质量汇总",
 }
 for name, purpose in required_artifacts.items():
     if not (seednote_dir / name).is_file():
@@ -100,20 +100,20 @@ if summary_path.is_file():
     else:
         outputs = summary.get("outputs")
         if not isinstance(outputs, list) or not outputs:
-            missing.append("output/reference-usage-summary.json.outputs 为空，未记录逐图核验结果")
+            missing.append("reference-usage-summary.json.outputs 为空，未记录逐图内容质量结论")
         else:
             for output in outputs:
                 filename = output.get("file_name") or "<unknown>"
-                verification = output.get("verification") or {}
-                if verification.get("passed") is not True:
-                    missing.append(f"output/{filename} 视觉核验未通过（passed={verification.get('passed')!r}）")
+                quality_status = output.get("quality_status")
+                if quality_status != "accepted":
+                    missing.append(f"{filename} 内容质量状态未通过（quality_status={quality_status or 'missing'}）")
 
 if missing:
     block(
         f"种子笔记机械闸门未通过（{seednote_dir}），缺失：\n"
         + "".join(f"  - {item}\n" for item in missing)
-        + "\n请完成 seednote-visual-design 规划和 generate_image 原子视觉核验，并写入上述显式 output/<filename> 路径。"
-        + "若依赖不可用，写入 output/failure-state.json 后停止；禁止用 prompt 质量或文件尺寸代替视觉核验。"
+        + "\n请完成 seednote-visual-design 规划、逐图生成和内容质量记录，并将全部产物留在 output/。"
+        + "只有 generate_image 失败才写结构化 failure-state.json；analyze_image 不可用只记录 warning。"
     )
 
 sys.exit(0)
