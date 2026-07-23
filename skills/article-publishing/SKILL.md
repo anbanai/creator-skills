@@ -117,11 +117,11 @@ author 为空                         → 省略 author 字段（切勿用 write
 
 | 前置产出 | 来源 | 用途 |
 |----------|------|------|
-| `$DIR/05-article.html` | content-writing skill（通过 `render_template` 生成） | 作为 articles[0].content |
-| `$DIR/cover.png` 的 `media_id` | article-visual-design skill（已通过内容审核） | 作为 articles[0].thumb_media_id |
-| `$DIR/seo-result.md` | seo-optimization skill | 提取优化后的标题和摘要 |
-| `$DIR/visual-rhythm-plan.md` | article-visual-design skill | 渲染审计参考（HTML 应已按 plan 渲染） |
-| `$DIR/images.json` | article-visual-design skill | 视觉审计参考（含可见内容质量结论） |
+| `output/05-article.html` | content-writing skill（通过 `render_template` 生成） | 作为 articles[0].content |
+| `output/cover.png` 的 `media_id` | article-visual-design skill（已通过内容审核） | 作为 articles[0].thumb_media_id |
+| `output/seo-result.md` | seo-optimization skill | 提取优化后的标题和摘要 |
+| `output/visual-rhythm-plan.md` | article-visual-design skill | 渲染审计参考（HTML 应已按 plan 渲染） |
+| `output/images.json` | article-visual-design skill | 视觉审计参考（含可见内容质量结论） |
 
 ## 发布前验证
 

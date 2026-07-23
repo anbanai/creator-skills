@@ -23,8 +23,8 @@ description: 'Use when creating seednote visual content including covers, conten
 
 - **禁止跳过 image-plan.md 直接调 generate_image**
 - **禁止 prompt 中省略「必须出现文字」字段**（封面是主文案，内容图是 2-4 条短句，尾图是 1-2 条文案）
-- **`$DIR/image-prompts.md` 每张图片只记录文件名、用途与最终创作提示词**
-- **最后必须跑 Step 6 质量验证，写入 `$DIR/image-review.md`**
+- **`output/image-prompts.md` 每张图片只记录文件名、用途与最终创作提示词**
+- **最后必须跑 Step 6 质量验证，写入 `output/image-review.md`**
 - **图片内所有可见文字必须是简体中文**（用户使用中文时），禁止英文/拼音/乱码/伪词
 - **prompt 中文字必须用全角引号「」或书名号《》包裹**，让模型识别为"文字内容"而非视觉描述
 
@@ -53,10 +53,10 @@ description: 'Use when creating seednote visual content including covers, conten
 2. **视觉策略**：先确定统一色彩、画面主体、标题层级、信息密度、镜头/场景方向和内容页节奏，再写入 `output/image-plan.md`。
 3. **社交图文视觉原则**：用 `editorial 信息层级` 安排主标题、辅助信息、证据点和视觉主体；用 `Swiss/magazine 秩序感` 控制留白、对齐、分组和对比；用 `图文节奏` 保证封面负责点击，内容图负责理解，尾图负责收束。
 4. **Prompt 蓝图**：每张图都明确角色、可见文案、视觉主体、构图层级、风格延续和验收标准；prompt 只描述要得到的画面效果和内容关系。
-5. **生成记录**：`$DIR/image-prompts.md` 每张图片只写文件名、用途和最终创作提示词。
-6. **质量复盘**：如工作流需要内容质量审核，生成后单独调用 `analyze_image`；`$DIR/image-review.md` 只记录可见主体、文字、构图和合规观察。
+5. **生成记录**：`output/image-prompts.md` 每张图片只写文件名、用途和最终创作提示词。
+6. **质量复盘**：如工作流需要内容质量审核，生成后单独调用 `analyze_image`；`output/image-review.md` 只记录可见主体、文字、构图和合规观察。
 
-只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `$DIR/image-review.md` 和 `$DIR/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。原始运行错误只保留在服务端观测记录中，不写入内容质量结论。
+只有 `generate_image` 本身失败或超时时，才写入 `output/failure-state.json` 并停止图片阶段。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `output/image-review.md` 和 `output/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。原始运行错误只保留在服务端观测记录中，不写入内容质量结论。
 
 `failure-state.json` 必须是结构化可恢复失败态：
 
@@ -283,7 +283,7 @@ reference-usage-summary.json
 3. **内容图**：使用 [references/content.md](references/content.md) 的 Prompt 模板逐张生成（1~3 张），传入当前页选中的原始路径子集以及对应信息点和布局；没有相关参考时纯文生图；始终保证不同实景背景和构图角度
 4. **尾图（仅当 `seednote_image_mode` 包含尾图时）**：使用 [references/tail.md](references/tail.md) 的 Prompt 模板单独生成，并仅传尾图相关的原始路径子集；不含尾图则跳过
 5. **生成与创作记录**：每次只调用 `generate_image` 生成当前计划图片；`image-prompts.md` 使用“文件名 / 用途 / 提示词”格式记录创作内容。
-6. **失败记录**：`generate_image` 返回错误或超时时，写入 `$DIR/failure-state.json`，保留已生成产物并停止；不得把分析、计费、配置或其他错误改写成图片生成超时。
+6. **失败记录**：`generate_image` 返回错误或超时时，写入 `output/failure-state.json`，保留已生成产物并停止；不得把分析、计费、配置或其他错误改写成图片生成超时。
 
 ### 步骤 6：质量验证
 
@@ -336,7 +336,7 @@ reference-usage-summary.json
 **调用示例（封面，务必带上 task_id）**：
 
 ```
-generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="$DIR/cover.png", size="3:4")
+generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="output/cover.png", size="3:4")
 ```
 
 内容图、尾图同理，逐张调用时只替换 `image_type` 与 `output_path`（如 `output/image_01.png`、`output/tail.png`），`task_id=$TASK_ID` 每张都必须带。托管运行时已提供 `output/`，因此 `output_path` 直接使用这些显式路径，服务端可登记为 task_file。

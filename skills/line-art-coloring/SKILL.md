@@ -31,7 +31,7 @@ description: Use when coloring line art images, batch coloring multiple images, 
 | `generate_image` (project_id, task_id, prompt, image_type, output_path, size, ref_image_path / ref_image_paths, watermark) | 从创作 prompt 和有序参考集合生成并登记一张任务图片，返回 `name`、`role`、`download_url`、`file_path` |
 | `upload_image` (project_id, file_path) | 上传图片 |
 | `compress_image` (file_path) | 压缩图片 |
-| `download_image` (project_id, url) | 把在线图片下载到 MCP 服务器临时路径，返回服务器端 `file_path`；不上传，也不写入 agent 本地 `$DIR` |
+| `download_image` (project_id, url) | 把在线图片下载到 MCP 服务器临时路径，返回服务器端 `file_path`；不上传，也不写入 agent 本地 `output` |
 
 ---
 
@@ -207,12 +207,9 @@ best_ref 记录的是某实体**颜色**渲染最好的一张，可作为 `ref_i
 
 - `echo $ANBAN_DEFAULT_PROJECT` → `$PROJECT_ID`
 - 如果为空，调用 `list_projects` 获取项目列表并选择；只有一个可用项目时自动使用，多个项目且无法从任务上下文判断时停止并提示配置 `ANBAN_DEFAULT_PROJECT`
-- 从 `.task-context` 获取 `$TASK_ID`，或使用 CWD 目录名
+- 从结构化 runtime 上下文获取 `$TASK_ID`
 - **确定语义参考集合**：当前原始线稿排第一；需要颜色一致性时追加最相关的颜色锚点，并保持 prompt 编号与参考数组顺序一致
-- 尝试调用 `prepare_workspace(content_type="design", task_id=$TASK_ID)` → `$DIR`
-  - prepare_workspace 返回的 path 可能是相对路径；相对路径以当前任务工作区 `$CWD` 为根，例如返回 `output` 时使用 `$CWD/output`
-  - 如果 `prepare_workspace` 调用失败，使用 `$CWD/output/` 作为 `$DIR`
-- `mkdir -p "$DIR"`
+- 使用 runtime 已预创建的 `output/`；不得创建、发现、移动或重命名该目录
 
 #### 步骤 2：确认输入线稿
 
@@ -307,7 +304,7 @@ COLOR RELATIONSHIPS:
 - 保线固定语必须包含
 - 不使用 hex 色值
 - 模型对简单直接的颜色指令响应更准，如 "blue jacket"、"red scarf"；复杂语义色名只用于关键实体，不要堆叠多层反面约束
-- `$DIR/image-prompts.md` 只记录图片用途、最终创作 prompt 和参考图编号
+- `output/image-prompts.md` 只记录图片用途、最终创作 prompt 和参考图编号
 
 #### 步骤 6：生成候选（原线稿作为第一参考）
 
@@ -325,7 +322,7 @@ lineart_server = download_image(project_id="$PROJECT_ID",
 - 每张上色图都必须带当前原始线稿；不要把前一张上色输出作为下一张的构图来源
 - 服务端拒绝参考集合时，保留原线稿并按语义相关性缩小锚点子集
 
-`output_path` 是 MCP 服务器端路径，不是客户端当前目录路径。使用任务相对路径 `$DIR/colored_NN_a.png`，返回的 `file_path` 写入 `$DIR/server-paths.md`。`size` 从原始线稿推断最接近的支持比例（如 7:5 接近 `3:2` 或 `4:3`），传入 `size="3:2"`；返回后用文件尺寸或 `analyze_image` 检查是否被裁切、变形或转为竖图。
+`output_path` 使用任务相对路径 `output/colored_NN_a.png`，返回的 `file_path` 写入 `output/server-paths.md`。`size` 从原始线稿推断最接近的支持比例（如 7:5 接近 `3:2` 或 `4:3`），传入 `size="3:2"`；返回后用文件尺寸或 `analyze_image` 检查是否被裁切、变形或转为竖图。
 
 生成候选 A：
 ```
@@ -334,7 +331,7 @@ result_a = generate_image(
   task_id="$TASK_ID",
   prompt="[主 prompt]",
   image_type="content",
-  output_path="$DIR/colored_NN_a.png",
+  output_path="output/colored_NN_a.png",
   size="[从原线稿推断的比例]",
   ref_image_paths=[lineart_server, ...相关颜色锚点]
 )
@@ -481,7 +478,7 @@ Color Bible 实体数: 5（3 角色 + 2 物体）
 - 语义色名、实物类比、反面约束和跨实体颜色关系的完整写法见 [references/color-bible.md](references/color-bible.md)。次要实体使用更简单直接的颜色指令，关键实体才叠加实物类比和反面约束。
 - 常见失败按 [references/verification.md](references/verification.md) 判断：颜色 FAIL 优先修；线稿退化直接触发回归守卫；当前 generate_image 非严格上色工具，强化 prompt 后仍失败就标 `needs_img2img`，不承诺 100% 保留。
 - 分析失败时遵循工具边界：Read 返回的 CDN URL 约 30 分钟过期；`file_path` 方式分析有 10MB 限制，先 `compress_image`，仍失败再 `upload_image` 后用 `image_url`。
-- `output_path` 是 MCP 服务器端路径，使用 `/tmp/anban-creator-line-art/$TASK_ID/...`；需要本地文件时下载 `download_url` 到显式路径 `output/colored_NN.png`，不能把 `download_image` 当作写入本地文件的步骤。
+- `output_path` 使用任务相对路径 `output/...`；需要本地文件时下载 `download_url` 到显式路径 `output/colored_NN.png`，不能把 `download_image` 当作写入本地文件的步骤。
 - 长 prompt 可能触发 504 Gateway Timeout。Prompt 控制在 500 词以内，优先关键实体、关键颜色和 1-2 个最重要反面约束。
 
 ## 最终验证

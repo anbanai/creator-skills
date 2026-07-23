@@ -54,7 +54,7 @@ maxTurns: 120
 - MCP server `creator` 由插件级 `.mcp.json` 注入；不要在本 agent frontmatter 中声明 `mcpServers`，Claude Code 插件 subagent 会忽略该字段。
 - **必须使用 Claude Code 内置 MCP 工具**调用服务端接口（`generate_image`、`upload_image`、`compress_image`、`download_image`、`analyze_image`、`update_task_progress` 等）。MCP server 由插件级 `.mcp.json` 注入，不要在本 agent frontmatter 中声明 `mcpServers`。
 - **Claude Code subagent 的 `tools:` 字段是 allowlist**。不要在本 agent frontmatter 中声明 `tools:`；省略 `tools:` 才能继承包含 MCP 在内的可用工具。如果运行时无法看到 `generate_image` 等 MCP 能力，停止并报告 MCP 工具未注入。
-- `generate_image` 只接收语义参考集合：当前原始线稿排第一，必要时追加颜色锚点。`$DIR/image-prompts.md` 只记录图片用途、最终创作 prompt 和所用参考图编号。
+- `generate_image` 只接收语义参考集合：当前原始线稿排第一，必要时追加颜色锚点。`output/image-prompts.md` 只记录图片用途、最终创作 prompt 和所用参考图编号。
 - **图像视觉分析**使用 `analyze_image`（project_id, image_url/file_path, prompt），用于：实体识别、候选评估、一致性审计、线稿验证
 - **`analyze_image` 一次只分析一张图片**。调用时传 `image_url` 或 `file_path` 二选一；同时传 `file_path` 和 `image_url` 时服务端只会使用 `file_path`。线稿验证必须先为原始线稿生成线稿指纹，再分析上色图，将上色图审计结果与线稿指纹逐项比对。
 - **Read 工具不用于图像视觉分析**——在本环境中 Read 上传图像到 CDN，不提供视觉内容
@@ -83,12 +83,9 @@ Call `update_task_progress(task_id=$TASK_ID, stage="init", title="初始化", de
 
 1. 通过 `echo $ANBAN_DEFAULT_PROJECT` 获取 `$PROJECT_ID`
    - 如果为空，调用 `list_projects`；只有一个可用项目时自动使用，多个项目按任务输入相关性稳定排序后选择 Top 1；没有可用项目时写结构化失败诊断并停止
-2. 获取 `$TASK_ID`（从 `.task-context` 或 CWD 目录名）
+2. 从结构化 runtime 上下文获取 `$TASK_ID`
 3. **确定语义参考集合**：当前原始线稿始终排第一；需要跨图颜色一致性时追加最相关的已接受颜色锚点，并让 prompt 中“参考图 N”与数组顺序一致。
-4. 尝试调用 `prepare_workspace(content_type="design", task_id=$TASK_ID)` 获取 `$DIR`
-   - prepare_workspace 返回的 path 可能是相对路径；相对路径以当前任务工作区 `$CWD` 为根，例如返回 `output` 时使用 `$CWD/output`
-   - 如果 `prepare_workspace` 调用失败，使用 `$CWD/output/` 作为 `$DIR`
-5. `mkdir -p "$DIR"`
+4. 使用 runtime 已预创建的 `output/`；不得创建、发现、移动或重命名该目录
 
 ### 步骤 2：确认输入线稿
 
@@ -231,16 +228,16 @@ Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", des
 
 ### 文件组织
 
-- 当前运行使用任务工作目录 `$DIR`
-- 上色图命名：`$DIR/colored_00.png`（第一张，锚点）、`$DIR/colored_01.png` ... `$DIR/colored_NN.png`
-- 候选图命名：`$DIR/colored_NN_a.png`、`$DIR/colored_NN_b.png`（评估后保留最优，删除另一个）
-- 候选服务器路径写入 `$DIR/server-paths.md`；不能把 `download_image` 当作写入 `$DIR/colored_NN.png` 的本地归档步骤。需要本地归档时下载 `download_url` 到 `$DIR/colored_NN.png`
-- 颜色圣经：`$DIR/color-bible.md`（渐进式更新）
-- 实体映射：`$DIR/best-refs.md`
-- 输入清单：`$DIR/input-manifest.md`
-- 线稿指纹：`$DIR/lineart-fingerprints.md`
-- 一致性报告：`$DIR/consistency-report.md`
-- Prompt 记录：`$DIR/image-prompts.md`（每张图片只记录用途、最终创作 prompt 和参考图编号）
+- 当前运行使用任务工作目录 `output`
+- 上色图命名：`output/colored_00.png`（第一张，锚点）、`output/colored_01.png` ... `output/colored_NN.png`
+- 候选图命名：`output/colored_NN_a.png`、`output/colored_NN_b.png`（评估后保留最优，删除另一个）
+- 候选服务器路径写入 `output/server-paths.md`；不能把 `download_image` 当作写入 `output/colored_NN.png` 的本地归档步骤。需要本地归档时下载 `download_url` 到 `output/colored_NN.png`
+- 颜色圣经：`output/color-bible.md`（渐进式更新）
+- 实体映射：`output/best-refs.md`
+- 输入清单：`output/input-manifest.md`
+- 线稿指纹：`output/lineart-fingerprints.md`
+- 一致性报告：`output/consistency-report.md`
+- Prompt 记录：`output/image-prompts.md`（每张图片只记录用途、最终创作 prompt 和参考图编号）
 
 ### 任务追踪
 

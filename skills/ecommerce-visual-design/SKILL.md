@@ -29,8 +29,8 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 - **禁止生成未在 `selected_modules` 中的模块**——未选模块不出现在 asset-plan.md、不调 generate_image、不进 manifest
 - **每张电商图必须带当前画面相关的产品原图**——按「产品图清单」subject 选择语义相关子集，保持数组顺序与 prompt 中“参考图 N”一致；服务端负责参考能力与数量限制。禁止纯文臆造产品
 - **prompt 必须点名保真**——明确写出「本图{部位}必须与【产品图清单】第 N 张完全保持一致——{该图可见特征}不得偏差」，禁止泛泛「保留产品」（详见步骤 3）
-- **`$DIR/image-prompts.md` 只记录每张图片的用途、最终创作 prompt 和参考图编号**
-- **一致性关键模块生成后单独调用 `analyze_image`**，对照对应原图审核产品、文字与合规；结果写入 `$DIR/best-refs.md` 与 manifest
+- **`output/image-prompts.md` 只记录每张图片的用途、最终创作 prompt 和参考图编号**
+- **一致性关键模块生成后单独调用 `analyze_image`**，对照对应原图审核产品、文字与合规；结果写入 `output/best-refs.md` 与 manifest
 - **图内文字语言必须与用户语言一致**（中文场景用简体中文），文字用全角引号「」包裹；禁止英文/拼音/乱码/伪词
 
 ---
@@ -49,8 +49,8 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 
 ## 输入
 
-- `$DIR/product-bible.md`（产品档案 + `$ANCHOR_REF` 锚点）
-- `$DIR/copywriting.md`（排序卖点 + 各模块文案）
+- `output/product-bible.md`（产品档案 + `$ANCHOR_REF` 锚点）
+- `output/copywriting.md`（排序卖点 + 各模块文案）
 - 项目画像（品牌、受众、参考资产与视觉风格）
 - 任务选项：`selected_modules`、`target_platform`、`visual_style`、语言、各模块数量
 
@@ -124,12 +124,12 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 - `prompt` = 产品档案前缀块 + **点名保真块（本图{部位}与【产品图清单】第 N 张完全一致）** + 本张视觉描述（视觉主体/场景/构图/打光）+ 必须出现的卖点文字（用「」包裹）+ `$STYLE` 风格延续块 + 禁用元素
 - `image_type`：主图/封面/分享/SKU 用 `"cover"` 配置，详情图用 `"content"` 配置（按项目 image API 配置；默认 cover 用更高质量）
 - `size`：按 asset-plan
-- `output_path`：`$DIR/<模块>_<NN>.png`
+- `output_path`：`output/<模块>_<NN>.png`
 - `ref_image_paths`：只传本图所需部位的产品原图，顺序与 prompt 编号一致；服务端拒绝时缩小为更相关的子集。禁止不传 ref
 - `task_id=$TASK_ID`
 
 
-**Prompt 备份**：每张图片只把用途、最终创作 prompt 和参考图编号写入 `$DIR/image-prompts.md`。
+**Prompt 备份**：每张图片只把用途、最终创作 prompt 和参考图编号写入 `output/image-prompts.md`。
 
 **失败处理**：单图失败重试一次仍失败则跳过并在 manifest 标注；主图①失败重试两次仍失败则**停止并请求用户协助**（主图是 CTR 之战，不可缺）。重试必须覆盖同一 output_path，禁止新增 `_v2` 候选文件；交付前清理目录，仅保留 asset-plan 列出的文件。
 
@@ -146,7 +146,7 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 返回严格 JSON：{all_entities_present, missing_entities, relevance_score(high/medium/low), overall_pass(bool), has_forbidden_content(bool), forbidden_notes}
 ```
 
-自检结果写入 `$DIR/best-refs.md`（逐图：内容质量 PASS/FAIL、创作修订轮次、`needs_reference`）。
+自检结果写入 `output/best-refs.md`（逐图：内容质量 PASS/FAIL、创作修订轮次、`needs_reference`）。
 
 ## 步骤 6：模块内一致性复查
 
@@ -184,7 +184,7 @@ SKU 变体图要求「**同一版式、同一打光、仅变体属性不同**」
 
 ## 产出
 
-- `$DIR/asset-plan.md`（仅含已选模块的计划）
-- `$DIR/image-prompts.md`（全部 prompt 备份）
-- `$DIR/best-refs.md`（逐图内容质量结论/创作修订/needs_reference）
+- `output/asset-plan.md`（仅含已选模块的计划）
+- `output/image-prompts.md`（全部 prompt 备份）
+- `output/best-refs.md`（逐图内容质量结论/创作修订/needs_reference）
 - 各模块图片：`main_01..05.png`、`detail_01..NN.png`、`cover_01..NN.png`、`share_01..NN.png`、`sku_<variant>.png`

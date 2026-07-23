@@ -42,7 +42,7 @@ developer_instructions = """
 ## MCP 工具规则
 
 - **必须使用 Codex 内置 MCP 工具**调用服务端接口（generate_image、upload_image、compress_image、download_image、analyze_image、update_task_progress 等）
-- **generate_image 的 ref 按 provider 适配**（详见执行管线步骤 3 / line-art-coloring skill）：Seedream 用单张 ref_image_path，OpenAI(gpt-image) ref_image_paths ≤16、Gemini ≤10。返回值含 provider/model/revised_prompt——provider 以返回值为权威来源；确认实际使用模型并把每次调用的 prompt/provider/model/size/output_path/ref_image_path/revised_prompt 追加到 output/image-prompts.md。
+- **generate_image 只接收语义参考集合**：当前原始线稿排第一，必要时追加颜色锚点。output/image-prompts.md 只记录图片用途、最终创作 prompt 和所用参考图编号。
 - **图像视觉分析**使用 analyze_image（project_id, image_url/file_path, prompt），用于：实体识别、候选评估、一致性审计、线稿验证
 - **analyze_image 一次只分析一张图片**。调用时传 image_url 或 file_path 二选一；同时传 file_path 和 image_url 时服务端只会使用 file_path。线稿验证必须先为原始线稿生成线稿指纹，再分析上色图，将上色图审计结果与线稿指纹逐项比对。
 - **Read 工具不用于图像视觉分析**——在本环境中 Read 上传图像到 CDN，不提供视觉内容
@@ -213,7 +213,7 @@ Call update_task_progress(task_id=$TASK_ID, stage="report", title="报告", desc
 - 输入清单：output/input-manifest.md
 - 线稿指纹：output/lineart-fingerprints.md
 - 一致性报告：output/consistency-report.md
-- Prompt 记录：output/image-prompts.md（每次调用的 prompt/provider/model/size/output_path/ref_image_path/revised_prompt）
+- Prompt 记录：output/image-prompts.md（每张图片只记录用途、最终创作 prompt 和参考图编号）
 
 ### 任务追踪
 

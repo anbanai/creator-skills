@@ -215,9 +215,10 @@ analyze_image(
 ```
 result = generate_image(
   project_id="$PROJECT_ID",
+  task_id="$TASK_ID",
   prompt=<5a 构建的 prompt>,
   image_type="cover",
-  output_path="/tmp/anban-creator-short-video-cover/$TASK_ID/cover.png",
+  output_path="output/cover.png",
   size="9:16",
   ref_image_path="$REF_SERVER_PATH"
 )
@@ -227,9 +228,9 @@ COVER_SERVER_PATH = result.file_path
 
 **5c. 本地文件 + prompt 备份**：
 
-- 下载 `DOWNLOAD_URL` 到 `$DIR/cover.png`（始终为可 HTTP fetch 的存储 URL，直接用 curl/wget 下载）
-- 把图片文件名、用途和最终创作 prompt 写入 `$DIR/cover-prompts.md`；参考封面的语义拆解与迁移决策保留在 `$DIR/reference-analysis.md` 和 `$DIR/cover-plan.md`
-- 把 `COVER_SERVER_PATH` 记录到 `$DIR/server-paths.md`
+- 下载 `DOWNLOAD_URL` 到 `output/cover.png`（始终为可 HTTP fetch 的存储 URL，直接用 curl/wget 下载）
+- 把图片文件名、用途和最终创作 prompt 写入 `output/cover-prompts.md`；参考封面的语义拆解与迁移决策保留在 `output/reference-analysis.md` 和 `output/cover-plan.md`
+- 把 `COVER_SERVER_PATH` 记录到 `output/server-paths.md`
 
 ---
 
@@ -261,7 +262,7 @@ analyze_image(
 
 任一关键项（标题清楚、主体突出）FAIL，或 3 项以上 MINOR：
 - 用更具体的 prompt 重试 1 次（明确指出问题项，加强反面约束）
-- `output_path` 改为 `/tmp/anban-creator-short-video-cover/$TASK_ID/cover_v2.png`
+- `output_path` 改为 `output/cover_v2.png`
 - 重试结果同样走 6a 审计；若仍 FAIL 则接受当前最佳并在 cover-review.md 标注 `needs_manual_edit`（建议用户用 PS/Canva 二次加工具体文字）
 
 **不要无限重试**——最多 1 次重试，避免消耗。
@@ -350,7 +351,7 @@ DO NOT include:
 | 太不像参考图（视觉断裂） | reference_depth=light 但色彩和字体气质也未对齐 | 即使 light 模式，主色和字体气质也应参考；只重做构图 |
 | CDN URL 过期 | Read 返回的 CDN URL 约 30 分钟后过期 | 获取后立即使用；需要重新分析时重新 Read 获取新 URL |
 | analyze_image 文件过大 | `file_path` 方式分析有 10MB 限制 | 先 `compress_image`，再失败则 `upload_image` 后用 `image_url` |
-| output_path 权限错误 | `output_path` 是 MCP 服务器端路径 | 使用 `/tmp/anban-creator-short-video-cover/$TASK_ID/...` |
+| output_path 权限错误 | 路径不属于任务工作区 | 使用任务相对路径 `output/...` |
 | 长 prompt 504 Gateway Timeout | prompt 过长或约束过多 | Prompt 控制在 500 词以内，优先 8 要素和最关键反面约束 |
 | ref_image_path 无法访问 | 远程 MCP Server 无法访问本地文件路径 | 通过 Read + download_image 注册到服务器端 |
 
@@ -360,13 +361,13 @@ DO NOT include:
 
 ### 单张封面完成后
 
-- [ ] `$DIR/input-manifest.md` 已生成，包含全部 6 个用户输入字段
-- [ ] `$DIR/server-paths.md` 已记录 REF_SERVER_PATH（和 COVER_SERVER_PATH）
-- [ ] `$DIR/reference-analysis.md` 已生成，覆盖 8 个分析维度
-- [ ] `$DIR/cover-plan.md` 已生成，包含迁移决策和 style anchors
-- [ ] `$DIR/cover.png` 实际下载到本地
-- [ ] `$DIR/cover-prompts.md` 已备份文件名、用途和最终创作 prompt
-- [ ] `$DIR/cover-review.md` 已生成，5 项审计 PASS/MINOR/FAIL 评级
+- [ ] `output/input-manifest.md` 已生成，包含全部 6 个用户输入字段
+- [ ] `output/server-paths.md` 已记录 REF_SERVER_PATH（和 COVER_SERVER_PATH）
+- [ ] `output/reference-analysis.md` 已生成，覆盖 8 个分析维度
+- [ ] `output/cover-plan.md` 已生成，包含迁移决策和 style anchors
+- [ ] `output/cover.png` 实际下载到本地
+- [ ] `output/cover-prompts.md` 已备份文件名、用途和最终创作 prompt
+- [ ] `output/cover-review.md` 已生成，5 项审计 PASS/MINOR/FAIL 评级
 
 ### 全部完成后
 

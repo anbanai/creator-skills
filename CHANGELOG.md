@@ -11,6 +11,7 @@ This project follows semantic versioning for the plugin package. Patch releases 
 - Moved image workflow sequencing, retries, content-quality decisions, and publishing uploads into Agents and Skills.
 - Made `generate_image`, `analyze_image`, and `upload_image` independent capabilities instead of one combined MCP workflow.
 - Reduced image prompt and review artifacts to creative intent, semantic reference choices, and visible content-quality observations.
+- Adopted the runtime-owned, pre-created `output/` contract and removed Agent/Skill workspace discovery and directory lifecycle ownership.
 
 ### Removed
 

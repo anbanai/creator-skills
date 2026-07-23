@@ -148,13 +148,13 @@ Phase 4: 配图生成与独立内容审核
 
 > **封面开关守卫**：当 `article_image_mode` 为 `content_only` 或 `text_only` 时，**Phase 2 整体跳过**——不调 `generate_image`、不生成 `output/cover.png`、不取 `media_id`/`$COVER_PATH`。`article-cover-design` skill 同步跳过（见其「跳过条件」）。封面关·配图开时，Phase 4 正文图改用无锚点独立生成。
 
-封面是全篇风格锚点（产物 `$DIR/cover.png` 供 Phase 4 内容图 `ref_image_path` 继承）。**封面设计已独立成稿**——using the `article-cover-design` skill，它硬编码官方比例（900×383 / 2.35:1）、中心安全区构图（转发卡 1:1 兼容）、受控文字策略、从文章核心隐喻推导视觉概念，并由 Agent 用质量评分卡把关。本阶段只交代与本 skill 的衔接：
+封面是全篇风格锚点（产物 `output/cover.png` 供 Phase 4 内容图 `ref_image_path` 继承）。**封面设计已独立成稿**——using the `article-cover-design` skill，它硬编码官方比例（900×383 / 2.35:1）、中心安全区构图（转发卡 1:1 兼容）、受控文字策略、从文章核心隐喻推导视觉概念，并由 Agent 用质量评分卡把关。本阶段只交代与本 skill 的衔接：
 
 - **核心规格**：大图 2.35:1（900×383px，服务端强制精确裁剪），转发卡 1:1 由中心安全区自动覆盖，受控文字策略（按真实场景决定是否带短文字）。
-- **生成调用**：`generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="$DIR/cover.png", size="21:9")`；需要质量审核时单独调用 `analyze_image`，通过后调用 `upload_image`。
+- **生成调用**：`generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="output/cover.png", size="21:9")`；需要质量审核时单独调用 `analyze_image`，通过后调用 `upload_image`。
   - `size="21:9"` 是接近业务目标的生成提示比；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383 并像素断言**——微信零裁剪，告别「需要手动裁剪的纯图」。
 
-- **质量评分卡不过** → 根据可见问题锐化 prompt 重试，最多 3 次；耗尽后保留已有产物并写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_cover_quality_failed","message":"封面在限定创作重试后仍未通过质量评分卡","resume_from":"image_generation"}`，结束当前托管执行；不得请求用户协助，**不得**用未通过封面发布。
+- **质量评分卡不过** → 根据可见问题锐化 prompt 重试，最多 3 次；耗尽后保留已有产物并写入 `output/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_cover_quality_failed","message":"封面在限定创作重试后仍未通过质量评分卡","resume_from":"image_generation"}`，结束当前托管执行；不得请求用户协助，**不得**用未通过封面发布。
 - 详细推导链、6 维评分卡模板、迭代策略、`cover-prompt.md` 审计见 [article-cover-design/SKILL.md](../article-cover-design/SKILL.md)；三维风格方向参考见 [references/cover.md](references/cover.md)。
 
 **产出**：`output/cover.png`, `media_id`, `$COVER_PATH`
@@ -225,7 +225,7 @@ generate_image(
   image_type="content",
   output_path="output/img_N.png",
   task_id=$TASK_ID,
-  ref_image_path=<封面开关开启时 "$DIR/cover.png"；封面关时省略或链到首张已生成图>,
+  ref_image_path=<封面开关开启时 "output/cover.png"；封面关时省略或链到首张已生成图>,
   size=<按 slot 固定：section_opener 用 "4:3"；inline_detail 用 "1:1"；信息图/流程图/对比图默认 "4:3">
 )
 ```
@@ -261,7 +261,7 @@ analyze_image(
 ### 步骤 4e：独立上传并立即原子落盘
 
 - 图片通过 Agent 的质量判断后单独调用 `upload_image`，从其返回值取得 `wechat_url` 和 `media_id`。上传失败时保留已生成图片，只重试上传，不重新生成。
-- **原子写** `$DIR/images.json`：先写临时文件 `$DIR/.images.json.tmp` → `fsync` → `rename` 覆盖 `$DIR/images.json`。绝不要"攒齐所有图再一次性写"——那是丢失窗口。
+- **原子写** `output/images.json`：先写临时文件 `output/.images.json.tmp` → `fsync` → `rename` 覆盖 `output/images.json`。绝不要"攒齐所有图再一次性写"——那是丢失窗口。
 - 每条记录必须包含：
   ```json
   {
@@ -320,7 +320,7 @@ analyze_image(
 - 单图失败 → 重试或降级标记
 - 节奏/模板违规 → 回到 Phase 0 重新规划
 - 内容审核通过率 < 80% → 检查 prompt 构建逻辑，必要时回退到 Phase 3 重新规划
-- 超过一半章节配图在各自限定重试后仍失败 → 保留已有产物并写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_content_images_failed","message":"超过一半章节配图在限定重试后仍失败","resume_from":"image_generation"}`，结束当前托管执行，不得请求用户协助
+- 超过一半章节配图在各自限定重试后仍失败 → 保留已有产物并写入 `output/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_content_images_failed","message":"超过一半章节配图在限定重试后仍失败","resume_from":"image_generation"}`，结束当前托管执行，不得请求用户协助
 
 ---
 

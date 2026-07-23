@@ -213,7 +213,7 @@ reference-usage-summary.json
 
 #### 步骤 8a：原创模式图片生成
 
-原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `$DIR/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `$DIR/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `$DIR/image-review.md` 和 `$DIR/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止后续计划图片生成，也不能单独导致最终交付失败。只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；审核不可用 warning 不计为质量失败。
+原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `output/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `output/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `output/image-review.md` 和 `output/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止后续计划图片生成，也不能单独导致最终交付失败。只有 `generate_image` 本身失败或超时时，才写入 `output/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；审核不可用 warning 不计为质量失败。
 
 **产出**：`output/image-plan.md`、`output/cover.png`、内容图（按 `seednote_image_mode`）、尾图（按 `seednote_image_mode`）
 
@@ -237,7 +237,7 @@ reference-usage-summary.json
 
 #### 步骤 10：交付校验
 
-调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `$DIR/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `$DIR`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 记录可见内容质量观察和“审核不可用” warning；`analyze_image` 运行错误只保留在服务端观测记录中，不创建失败态，也不单独让交付校验失败。所有产物始终保留在 `$DIR`，不得移动、复制或按标题重命名成果目录。`failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `$DIR/failure-state.json`。
+调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `output/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `output`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 记录可见内容质量观察和“审核不可用” warning；`analyze_image` 运行错误只保留在服务端观测记录中，不创建失败态，也不单独让交付校验失败。所有产物始终保留在 `output`，不得移动、复制或按标题重命名成果目录。`failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `output/failure-state.json`。
 
 **产出**：`output`
 
