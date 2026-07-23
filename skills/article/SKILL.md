@@ -299,7 +299,7 @@ using the article-publishing skill 创建 `draft.json` 并发布：
 - **封面必须通过内容审核与有效性检查**才可作为 `thumb_media_id`（仅封面开关开启时）；仅有旧的 6 维视觉评分全为 high 不得通过。缺 `cover_strategy`、缺 `cover_effectiveness_scorecard` 或 `cover_effectiveness_scorecard.overall_pass=false` 均不得发布。
 - **超过一半章节配图失败**：保留已生成产物，写入 `article_content_images_failed` 失败态并结束当前托管执行；不得用降级顶替方式强行凑齐。
 - **内容审核通过率 < 80%**：回到步骤 6e 检查 prompt 构建逻辑，不得直接发布。
-- **HTML 主路径必须用 `render_template`**（带 `layout_plan`）；`convert_markdown` 仅作旧版 server 兼容降级，不得作主渲染路径。
+- **HTML 唯一路径必须用 `render_template`**（带 `layout_plan`）；调用不可用或失败时写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"rendering","error_code":"article_mcp_call_failed","message":"render_template MCP 调用不可用或失败","resume_from":"rendering"}`，结束当前托管执行，禁止改用 `convert_markdown` 作为兼容、降级或替代路径。
 - **导流风险必须清零**：不得出现二维码、联系方式、外链 URL、扫码进群、加微信、关注/点赞/留言/转发领资料、回复关键词、跳小程序/其他账号或多重跳转交易。发现后自动调整，不作为任务失败。
 
 ## MCP 工具使用规则
