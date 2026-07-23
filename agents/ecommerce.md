@@ -100,7 +100,7 @@ output directory. TASK_ID is supplied by structured runtime context.
 
 #### 步骤 3：读取任务输入
 
-从任务上下文（`.task-context` / user prompt / 任务配置）读取：
+从结构化运行时上下文、user prompt 与任务配置读取：
 - **产品图发现 → `$PRODUCT_PHOTOS`**：将 `ecommerce.product_photo_dir` 读取为 `$PRODUCT_PHOTO_DIR`；相对路径以当前任务 CWD 为根解析，不得拼接 `output`。服务端把上传产品图下载到该目录并写 `$PRODUCT_PHOTO_DIR/index.json`（JSON 数组，元素为 `product_NN.<ext>` 文件名）。读取 `index.json`，把每个文件名拼成 `$PRODUCT_PHOTO_DIR/<filename>` 得到产品图路径列表 `$PRODUCT_PHOTOS`（用于 `analyze_image` 与 `ref_image_path`/`ref_image_paths`）。期望数量见 `ecommerce.product_photo_count`；`index.json` 缺失或全无可访问 → **停止并请求用户上传产品图**。
 - 已选模块 `selected_modules`、目标平台 `target_platform`、用户卖点 `selling_points`（可选）、视觉风格 `visual_style`、语言。
 

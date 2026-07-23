@@ -4,6 +4,14 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [4.0.1] - 2026-07-23
+
+### Fixed
+
+- Made the Seednote quality gate fail closed when managed runtime workspace injection is absent instead of falling back to the process working directory.
+- Kept recoverable Seednote research failures at the canonical `output/failure-state.json` path.
+- Removed residual `.task-context` discovery and canonicalized Agent/Skill failure artifacts under `output/`.
+
 ## [4.0.0] - 2026-07-23
 
 ### Changed

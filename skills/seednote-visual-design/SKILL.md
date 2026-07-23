@@ -56,9 +56,9 @@ description: 'Use when creating seednote visual content including covers, conten
 5. **生成记录**：`output/image-prompts.md` 每张图片只写文件名、用途和最终创作提示词。
 6. **质量复盘**：如工作流需要内容质量审核，生成后单独调用 `analyze_image`；`output/image-review.md` 只记录可见主体、文字、构图和合规观察。
 
-只有 `generate_image` 本身失败或超时时，才写入 `output/failure-state.json` 并停止图片阶段。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `output/image-review.md` 和 `output/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。原始运行错误只保留在服务端观测记录中，不写入内容质量结论。
+只有 `generate_image` 本身失败或超时时，才写入 `output/failure-state.json` 并停止图片阶段。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `output/image-review.md` 和 `output/reference-usage-summary.json` 的 `warnings`；不得写入 `output/failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。原始运行错误只保留在服务端观测记录中，不写入内容质量结论。
 
-`failure-state.json` 必须是结构化可恢复失败态：
+`output/failure-state.json` 必须是结构化可恢复失败态：
 
 ```json
 {"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"image_generation_failed","message":"<原始生成错误摘要>","resume_from":"image_generation"}
@@ -83,7 +83,7 @@ description: 'Use when creating seednote visual content including covers, conten
    ```
 
 4. 调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。
-5. 按 `image-plan.md` 生成全部计划图片。单张生成失败时保留已有文件，写 `failure-state.json` 并停止。
+5. 按 `image-plan.md` 生成全部计划图片。单张生成失败时保留已有文件，写 `output/failure-state.json` 并停止。
 6. 内容质量审核由 Agent/Skill 决定。需要时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`；`analyze_image` 传输或运行失败只写“审核不可用” warning，不创建失败态、不阻止继续生成，也不单独影响最终交付。
 7. 内容问题可调整参考组合/顺序和创作 prompt 后重新生成，单张最多 3 次。
 8. 写出 `reference-usage-summary.json`，只记录素材用途、选择依据与内容质量结论。

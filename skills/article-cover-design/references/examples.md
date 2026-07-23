@@ -1,6 +1,6 @@
 # article-cover-design Examples
 
-所有案例遵循同一运行契约：先调用 `generate_image` 生成封面；需要内容审核时单独调用 `analyze_image`，由 Agent 写出可见内容质量结论；通过后再单独调用 `upload_image`。上传失败只重试上传，不重新生成。生成、分析或整体质量闸门无法完成时写入 `failure-state.json` 并保留已有产物，不得请求用户中途协助。
+所有案例遵循同一运行契约：先调用 `generate_image` 生成封面；需要内容审核时单独调用 `analyze_image`，由 Agent 写出可见内容质量结论；通过后再单独调用 `upload_image`。上传失败只重试上传，不重新生成。生成、分析或整体质量闸门无法完成时写入 `output/failure-state.json` 并保留已有产物，不得请求用户中途协助。
 
 ### Case 1: 抽象管理主题封面
 

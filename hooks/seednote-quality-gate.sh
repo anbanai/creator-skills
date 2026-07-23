@@ -6,7 +6,6 @@ set -euo pipefail
 
 INPUT="$(cat)"
 export HOOK_INPUT="$INPUT"
-export WORKSPACE_ROOT="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 python3 - <<'PY'
 import json
@@ -28,7 +27,12 @@ except json.JSONDecodeError:
 if payload.get("agent_type") not in ("seednote", "anban:seednote"):
     sys.exit(0)
 
-root = Path(os.environ.get("WORKSPACE_ROOT") or os.getcwd())
+workspace_root = os.environ.get("CLAUDE_PROJECT_DIR")
+if not workspace_root or not workspace_root.strip():
+    block("种子笔记机械闸门无法运行：missing runtime workspace injection (CLAUDE_PROJECT_DIR)")
+    sys.exit(0)
+
+root = Path(workspace_root)
 
 failure_path = root / "output" / "failure-state.json"
 if failure_path.is_file():

@@ -21,7 +21,7 @@
 
 封面在 `visual-rhythm-plan.md` 中对应 `hero` slot（`image_size=full-bleed`, `2.35:1`），是全篇的视觉锚点。封面定调后，所有内容配图通过 `ref_image_path="output/cover.png"` 继承风格。详见 [rhythm.md](rhythm.md)。
 
-封面运行时先调用 `generate_image` 生成文件；需要内容审核时单独调用 `analyze_image`，由 Agent 根据主体、文字、构图和合规形成可见内容质量结论；通过后再单独调用 `upload_image`。上传失败只重试上传，不重新生成。生成、分析或整体质量闸门无法完成时写入 `failure-state.json` 并保留已有产物，不得请求用户中途协助。
+封面运行时先调用 `generate_image` 生成文件；需要内容审核时单独调用 `analyze_image`，由 Agent 根据主体、文字、构图和合规形成可见内容质量结论；通过后再单独调用 `upload_image`。上传失败只重试上传，不重新生成。生成、分析或整体质量闸门无法完成时写入 `output/failure-state.json` 并保留已有产物，不得请求用户中途协助。
 
 ## 核心原则：配置优先，账号/内容细化，Writer 无关
 
@@ -154,6 +154,6 @@ A 2.35:1 horizontal image for a WeChat article cover. Traditional Chinese aesthe
 - **最终 prompt**：实际传给 `generate_image` 的完整 prompt
 - **封面质量评分卡**：`visual_quality_scorecard` + 内容审核 prompt + Agent 的可见内容质量结论
 
-封面图必须通过 Agent 的内容质量判断，并由独立 `upload_image` 获得 `media_id` 后，才可作为发布草稿的 `thumb_media_id`；未通过时按创作预算重试，耗尽后写入 `failure-state.json`，不得使用失败封面发布。
+封面图必须通过 Agent 的内容质量判断，并由独立 `upload_image` 获得 `media_id` 后，才可作为发布草稿的 `thumb_media_id`；未通过时按创作预算重试，耗尽后写入 `output/failure-state.json`，不得使用失败封面发布。
 
 **注意**：封面仅用于 `thumb_media_id`，**不得复用为正文内容图**。正文每张图都必须独立生成并调用 `upload_image` 取得自己的 `wechat_url`——服务端 `publish_draft` 会硬拦截"正文 ≥2 图但唯一 URL==1"的草稿。

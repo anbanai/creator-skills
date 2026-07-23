@@ -37,7 +37,7 @@ Use Agent-Reach as the only boundary for external Xiaohongshu data. This skill d
 
 ## Unavailable Backend
 
-Agent-Reach is an optional enhancement for original Seednote research. When the CLI is missing or Xiaohongshu has no healthy backend, report the exact availability state to the parent workflow and do not run any backend command. An original task must continue from its explicit topic, topic pool, project profile, and existing-title deduplication; it must not create `failure-state.json` merely because external research is unavailable.
+Agent-Reach is an optional enhancement for original Seednote research. When the CLI is missing or Xiaohongshu has no healthy backend, report the exact availability state to the parent workflow and do not run any backend command. An original task must continue from its explicit topic, topic pool, project profile, and existing-title deduplication; it must not create `output/failure-state.json` merely because external research is unavailable.
 
 When the CLI exists but `xiaohongshu.status` is not `ok`, report the exact `status`, `active_backend`, and `message` from doctor. Do not describe local/project-context fallback as external trending data. When replicate mode depends only on an external note ID or URL and no source content can be resolved, report that recoverable source-input failure to the parent workflow.
 

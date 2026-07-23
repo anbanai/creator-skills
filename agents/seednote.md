@@ -78,8 +78,8 @@ output directory. TASK_ID is supplied by structured runtime context.
    ```
 
    调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。
-6. 按 `image-plan.md` 顺序调用 `generate_image` 生成全部计划图片。单张生成失败时写 `failure-state.json` 并停止在图片阶段；已成功生成的文件必须保留。
-7. 内容质量审核是 Agent/Skill 的独立工作流决策。需要审核时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `image-review.md` 和 `reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。
+6. 按 `image-plan.md` 顺序调用 `generate_image` 生成全部计划图片。单张生成失败时写 `output/failure-state.json` 并停止在图片阶段；已成功生成的文件必须保留。
+7. 内容质量审核是 Agent/Skill 的独立工作流决策。需要审核时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `image-review.md` 和 `reference-usage-summary.json` 的 `warnings`；不得写入 `output/failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。
 8. 审核指出内容问题时，可调整参考组合/顺序和创作 prompt 后重新生成，单张最多 3 次；不得请求用户决定参考组合或创作修订。
 9. 写出 `reference-usage-summary.json`。关键事实无法保证时记录失败或风险；非关键氛围或轻微构图问题记录 warning。
 <!-- seednote-reference-contract:end -->
@@ -167,7 +167,7 @@ reference-usage-summary.json
 
 #### 步骤 5：研究选题
 
-调用 `update_task_progress(task_id=$TASK_ID, stage="research", title="选题研究", description="评估主题并在可用时通过 Agent-Reach 补充真实热门笔记数据")`。执行 `agent-reach doctor --json`；仅当 `xiaohongshu.status == "ok"` 且 `active_backend` 非空时，按 `seednote-research` 方法和 Agent-Reach 返回的 backend 命令族采集热门笔记数据，并遵守 xsec_token 工作流。只有取得真实互动字段时才按互动率、时效性和新颖度评分。若 Agent-Reach 不可用、未安装、未登录或无健康 backend，基于用户明确主题、选题池、账号画像和已有标题完成保守选题，原创模式不得因此写 `failure-state.json` 或停止。将候选列表、外部评分或降级依据、避重判断、`data_source`、`channel_status`、`active_backend`、缺失字段和降级原因写入 `output/topic-analysis.md`，不得把降级结果描述为热门数据。
+调用 `update_task_progress(task_id=$TASK_ID, stage="research", title="选题研究", description="评估主题并在可用时通过 Agent-Reach 补充真实热门笔记数据")`。执行 `agent-reach doctor --json`；仅当 `xiaohongshu.status == "ok"` 且 `active_backend` 非空时，按 `seednote-research` 方法和 Agent-Reach 返回的 backend 命令族采集热门笔记数据，并遵守 xsec_token 工作流。只有取得真实互动字段时才按互动率、时效性和新颖度评分。若 Agent-Reach 不可用、未安装、未登录或无健康 backend，基于用户明确主题、选题池、账号画像和已有标题完成保守选题，原创模式不得因此写 `output/failure-state.json` 或停止。将候选列表、外部评分或降级依据、避重判断、`data_source`、`channel_status`、`active_backend`、缺失字段和降级原因写入 `output/topic-analysis.md`，不得把降级结果描述为热门数据。
 
 **产出**：`output/topic-analysis.md`
 
@@ -183,7 +183,7 @@ reference-usage-summary.json
 
 #### 步骤 5：获取源笔记
 
-调用 `update_task_progress(task_id=$TASK_ID, stage="research", title="选题研究", description="通过 Agent-Reach 获取源笔记详情与互动数据")`。执行 `agent-reach doctor --json`，再按 `seednote-research` 方法和 `active_backend` 获取源笔记真实数据。必须从搜索、feed 或 backend 返回的完整 URL 中取得 `feed_id` / `xsec_token`，**不得凭空构造 xsec_token**。详情、互动与评论写入 `output/source-note.md`，并记录 `data_source`、`active_backend`、`backend_command_family`、`token_source`、`missing_fields`、`fallback_reason`。失败时按对应 backend 重试链重试一次；若任务只有外部 ID/链接且仍无源内容，写结构化 `failure-state.json` 并从 `research` 恢复。
+调用 `update_task_progress(task_id=$TASK_ID, stage="research", title="选题研究", description="通过 Agent-Reach 获取源笔记详情与互动数据")`。执行 `agent-reach doctor --json`，再按 `seednote-research` 方法和 `active_backend` 获取源笔记真实数据。必须从搜索、feed 或 backend 返回的完整 URL 中取得 `feed_id` / `xsec_token`，**不得凭空构造 xsec_token**。详情、互动与评论写入 `output/source-note.md`，并记录 `data_source`、`active_backend`、`backend_command_family`、`token_source`、`missing_fields`、`fallback_reason`。失败时按对应 backend 重试链重试一次；若任务只有外部 ID/链接且仍无源内容，写结构化 `output/failure-state.json` 并从 `research` 恢复。
 
 **产出**：源笔记详情、`output/source-note.md`
 
@@ -213,7 +213,7 @@ reference-usage-summary.json
 
 #### 步骤 8a：原创模式图片生成
 
-原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `output/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `output/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `output/image-review.md` 和 `output/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止后续计划图片生成，也不能单独导致最终交付失败。只有 `generate_image` 本身失败或超时时，才写入 `output/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；审核不可用 warning 不计为质量失败。
+原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `output/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `output/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `output/image-review.md` 和 `output/reference-usage-summary.json` 的 `warnings`；不得写入 `output/failure-state.json`，不能阻止后续计划图片生成，也不能单独导致最终交付失败。只有 `generate_image` 本身失败或超时时，才写入 `output/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；审核不可用 warning 不计为质量失败。
 
 **产出**：`output/image-plan.md`、`output/cover.png`、内容图（按 `seednote_image_mode`）、尾图（按 `seednote_image_mode`）
 
@@ -237,7 +237,7 @@ reference-usage-summary.json
 
 #### 步骤 10：交付校验
 
-调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `output/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `output`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 记录可见内容质量观察和“审核不可用” warning；`analyze_image` 运行错误只保留在服务端观测记录中，不创建失败态，也不单独让交付校验失败。所有产物始终保留在 `output`，不得移动、复制或按标题重命名成果目录。`failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `output/failure-state.json`。
+调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `output/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `output`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 记录可见内容质量观察和“审核不可用” warning；`analyze_image` 运行错误只保留在服务端观测记录中，不创建失败态，也不单独让交付校验失败。所有产物始终保留在 `output`，不得移动、复制或按标题重命名成果目录。`output/failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `output/failure-state.json`。
 
 **产出**：`output`
 
@@ -273,8 +273,8 @@ reference-usage-summary.json
 |------|----------|
 | 选题评分无高分候选 | 自动选择最高分选题，在 `topic-analysis.md` 记录评分分布 |
 | 参考素材不可用 | 非关键素材记录 warning；唯一产品身份、Logo、包装、型号或核心结构证据不可用时保留产物并进入可恢复失败态 |
-| 图片生成失败 | 保留已生成图片并写 `failure-state.json`，从当前图片恢复 |
-| 内容审核调用失败 | 在 `image-review.md` 和 `reference-usage-summary.json` 的 `warnings` 记录“审核不可用”，继续生成后续计划图片；不写 `failure-state.json`，不单独导致最终交付失败，原始错误只保留在服务端观测记录中 |
+| 图片生成失败 | 保留已生成图片并写 `output/failure-state.json`，从当前图片恢复 |
+| 内容审核调用失败 | 在 `image-review.md` 和 `reference-usage-summary.json` 的 `warnings` 记录“审核不可用”，继续生成后续计划图片；不写 `output/failure-state.json`，不单独导致最终交付失败，原始错误只保留在服务端观测记录中 |
 | 源笔记获取失败 | 重新获取 token 后重试一次；仅有外部 ID/链接且仍无源内容时写失败态并停止 |
 | 爆款拆解证据不足 | 写入 missing_data，降低 confidence，默认推荐 `style-only` |
 | 复刻模板置信度低或视觉证据不足 | 记录原因并按 `style-only` 处理 |

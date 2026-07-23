@@ -19,7 +19,7 @@ agent-reach doctor --json
 
 同时读取 `xiaohongshu.status` 和 `xiaohongshu.active_backend`。只有 `status == "ok"` 且 `active_backend` 非空时，才按 Agent-Reach 选出的 backend 执行对应官方命令组；`warn` 状态即使带有 `active_backend` 也只是可修复候选，不可执行。不要在 Anban 内自行判断桌面、服务器、无头环境，也不要自行给 OpenCLI、xiaohongshu-mcp 或 xhs-cli 排优先级。
 
-Agent-Reach 不可用、未安装、未登录或 doctor 没有健康 backend 时，原创模式不得失败、不得写 `failure-state.json`：改用用户明确主题、选题池、账号画像和已有标题完成保守选题，并如实记录外部数据不可用。不得把本地判断描述成热门数据、互动率证据或 Agent-Reach 结果。复刻模式若只提供外部笔记 ID/链接且无法取得任何源内容，才属于无法满足核心输入的可恢复失败。
+Agent-Reach 不可用、未安装、未登录或 doctor 没有健康 backend 时，原创模式不得失败、不得写 `output/failure-state.json`：改用用户明确主题、选题池、账号画像和已有标题完成保守选题，并如实记录外部数据不可用。不得把本地判断描述成热门数据、互动率证据或 Agent-Reach 结果。复刻模式若只提供外部笔记 ID/链接且无法取得任何源内容，才属于无法满足核心输入的可恢复失败。
 
 本 skill 只读：允许搜索、笔记详情、评论、feed、用户公开数据；禁止发布、删除、关注、取关、点赞、收藏、评论写入等写操作。
 
@@ -142,7 +142,7 @@ novelty_bonus: 同角度笔记<3 → 1.2, 否则 → 1.0
 3. 将原始详情、`data_source=agent-reach`、`active_backend`、`backend_command_family`、`token_source`、互动数据、评论摘要、`missing_fields` 和 `fallback_reason` 写入 `output/source-note.md`。
 4. 后续由 `seednote-viral-analysis` skill 读取 `output/source-note.md`，生成 `output/source-analysis.md`、`output/viral-template.json`、`output/template-meta.json`。
 
-**边界**：不要在本 skill 中提取爆款模板，不要调用 `save_template`，不要生成改写正文。仅有外部 ID/链接且无法取得源内容时，写结构化 `failure-state.json` 并从 `research` 恢复；这条失败规则不适用于原创模式。
+**边界**：不要在本 skill 中提取爆款模板，不要调用 `save_template`，不要生成改写正文。仅有外部 ID/链接且无法取得源内容时，写结构化 `output/failure-state.json` 并从 `research` 恢复；这条失败规则不适用于原创模式。
 
 ## 产出要求
 
