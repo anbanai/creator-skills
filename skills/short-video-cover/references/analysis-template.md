@@ -68,14 +68,14 @@ analyze_image(
 
 ## 输出落地
 
-`analyze_image` 返回的文本直接作为 `$DIR/reference-analysis.md` 的正文，文件开头加：
+`analyze_image` 返回的文本直接作为 `output/reference-analysis.md` 的正文，文件开头加：
 
 ```markdown
 # Reference Cover Analysis
 
 ## Source
 
-- file: $DIR/input-manifest.md 中的 reference_cover
+- file: output/input-manifest.md 中的 reference_cover
 - analyzed_at: <时间戳>
 - ref_server_path: $REF_SERVER_PATH
 

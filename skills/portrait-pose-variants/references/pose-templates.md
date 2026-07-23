@@ -224,7 +224,7 @@ Emotional tone: Thrilled revelation, perfect for "finally figured it out", "it w
 3. **手势细节**：手的位置、形状、与身体的关系（手势是 AI 生图的高失败区，必须描述具体）
 4. **情绪基调**：适合什么封面类型
 
-把自定义姿态写入 `$DIR/selected-poses.md` 时，标注为 `custom` 类型。
+把自定义姿态写入 `output/selected-poses.md` 时，标注为 `custom` 类型。
 
 ## 通用 prompt 拼装顺序
 

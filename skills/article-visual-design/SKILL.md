@@ -27,10 +27,10 @@ description: 'Use when generating or processing images for WeChat articles. Use 
 |----------------------|-----------|
 | `cover_and_content` | Phase 2/3/4 全部执行 |
 | `cover_only` | **Phase 3（配图规划）+ Phase 4（配图生成）跳过**——不写 `image-plan.md`/`images.json`；正文不内联 `<img>`；模板 `image_count.min` **不再生效**，不得据此强制生成配图 |
-| `content_only` | **Phase 2（封面生成）跳过**——封面已委托 `article-cover-design` skill，见其「跳过条件」；不生成 `$DIR/cover.png`，不取 `media_id`/`$COVER_PATH` |
+| `content_only` | **Phase 2（封面生成）跳过**——封面已委托 `article-cover-design` skill，见其「跳过条件」；不生成 `output/cover.png`，不取 `media_id`/`$COVER_PATH` |
 | `text_only` | Phase 2/3/4 全跳过 |
 
-**封面关·配图开**时，Phase 4 正文图因无封面作 `ref_image_path` 风格锚点，改为各自独立生成（不传 `ref_image_path`，或链到首张已生成图），**严禁**指向不存在的 `$DIR/cover.png`。Phase 0/1（模板选择、节奏规划、三维风格分析）不受开关影响，始终执行。
+**封面关·配图开**时，Phase 4 正文图因无封面作 `ref_image_path` 风格锚点，改为各自独立生成（不传 `ref_image_path`，或链到首张已生成图），**严禁**指向不存在的 `output/cover.png`。Phase 0/1（模板选择、节奏规划、三维风格分析）不受开关影响，始终执行。
 
 下方各 Phase 顶部再次标注其跳过条件；质量验证的图片相关项在配图开关关闭时跳过。
 
@@ -93,7 +93,7 @@ Phase 4: 配图生成（带 vision 校验）
 
 ### 步骤 0a：选择文章类型模板
 
-读取 `$DIR/03-article.md`（或 `04-article-final.md`），根据结构特征匹配模板：
+读取 `output/03-article.md`（或 `04-article-final.md`），根据结构特征匹配模板：
 
 | 特征 | 模板 | 文件 |
 |------|------|------|
@@ -106,7 +106,7 @@ Phase 4: 配图生成（带 vision 校验）
 
 ### 步骤 0b：创建 visual-rhythm-plan.md
 
-读取 `$DIR/03-article.md`，对每个 `##` 章节，分配一个 slot。详细模板和示例见 [references/rhythm.md](references/rhythm.md)。
+读取 `output/03-article.md`，对每个 `##` 章节，分配一个 slot。详细模板和示例见 [references/rhythm.md](references/rhythm.md)。
 
 每个 slot 必须包含：
 - `slot_id`：hero / section_opener / inline_detail / footer
@@ -116,7 +116,7 @@ Phase 4: 配图生成（带 vision 校验）
 - `composition_type`：从 8 种构图类型中选（参见 references/content.md）
 - `chapter_anchor`：对应章节的标题或核心论点（1 句话）
 
-**产出**：`$DIR/visual-rhythm-plan.md`
+**产出**：`output/visual-rhythm-plan.md`
 
 ---
 
@@ -136,7 +136,7 @@ Phase 4: 配图生成（带 vision 校验）
 
 ### 步骤 1b：三维风格分析（细化 / 兜底）
 
-基于 `get_project_profile` 返回的 `$ACCOUNT_POSITIONING` / `$ACCOUNT_KEYWORDS` / `$ACCOUNT_AUDIENCE` 和 `$DIR/04-article-final.md` 内容，执行三维分析。当步骤 1a 有配置锚点时，分析必须向该锚点收敛（即用账号/内容主题来**充实**已指定的视觉方向），而非另起炉灶。
+基于 `get_project_profile` 返回的 `$ACCOUNT_POSITIONING` / `$ACCOUNT_KEYWORDS` / `$ACCOUNT_AUDIENCE` 和 `output/04-article-final.md` 内容，执行三维分析。当步骤 1a 有配置锚点时，分析必须向该锚点收敛（即用账号/内容主题来**充实**已指定的视觉方向），而非另起炉灶。
 
 详细规范见 [references/cover.md](references/cover.md)。
 
@@ -146,18 +146,18 @@ Phase 4: 配图生成（带 vision 校验）
 
 ## Phase 2：封面生成（委托 article-cover-design skill）
 
-> **封面开关守卫**：当 `article_image_mode` 为 `content_only` 或 `text_only` 时，**Phase 2 整体跳过**——不调 `generate_image`、不生成 `$DIR/cover.png`、不取 `media_id`/`$COVER_PATH`。`article-cover-design` skill 同步跳过（见其「跳过条件」）。封面关·配图开时，Phase 4 正文图改用无锚点独立生成。
+> **封面开关守卫**：当 `article_image_mode` 为 `content_only` 或 `text_only` 时，**Phase 2 整体跳过**——不调 `generate_image`、不生成 `output/cover.png`、不取 `media_id`/`$COVER_PATH`。`article-cover-design` skill 同步跳过（见其「跳过条件」）。封面关·配图开时，Phase 4 正文图改用无锚点独立生成。
 
-封面是全篇风格锚点（产物 `$DIR/cover.png` 供 Phase 4 内容图 `ref_image_path` 继承）。**封面设计已独立成稿**——using the `article-cover-design` skill，它硬编码官方比例（900×383 / 2.35:1）、中心安全区构图（转发卡 1:1 兼容）、受控文字策略、从文章核心隐喻推导视觉概念、vision 6 维评分卡把关。本阶段只交代与本 skill 的衔接：
+封面是全篇风格锚点（产物 `output/cover.png` 供 Phase 4 内容图 `ref_image_path` 继承）。**封面设计已独立成稿**——using the `article-cover-design` skill，它硬编码官方比例（900×383 / 2.35:1）、中心安全区构图（转发卡 1:1 兼容）、受控文字策略、从文章核心隐喻推导视觉概念、vision 6 维评分卡把关。本阶段只交代与本 skill 的衔接：
 
 - **核心规格**：大图 2.35:1（900×383px，服务端强制精确裁剪），转发卡 1:1 由中心安全区自动覆盖，受控文字策略（按真实场景决定是否带短文字）。
-- **生成调用**：`generate_image(project_id=$PROJECT_ID, prompt=<封面提示词>, image_type="cover", output_path="$DIR/cover.png", task_id=$TASK_ID, size="21:9", upload_to_cdn=true, verify_with_vision=true, verification_prompt=<6 维评分卡>)`。
+- **生成调用**：`generate_image(project_id=$PROJECT_ID, prompt=<封面提示词>, image_type="cover", output_path="output/cover.png", task_id=$TASK_ID, size="21:9", upload_to_cdn=true, verify_with_vision=true, verification_prompt=<6 维评分卡>)`。
   - `size="21:9"` 是生成提示比（Volcengine 支持的最近比）；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383 并像素断言**——微信零裁剪，告别「需要手动裁剪的纯图」。
   - `upload_to_cdn=true`：vision 校验通过才上传，直接返回 `media_id`（封面 thumb）+ `wechat_url`；校验未通过不上传（不浪费素材位）。
 - **vision 评分卡不过** → 按 `sharper_prompt_hint` 锐化 prompt 重试，最多 3 次；仍不过请求用户协助，**不得**用未通过封面发布。
 - 详细推导链、6 维评分卡模板、迭代策略、`cover-prompt.md` 审计见 [article-cover-design/SKILL.md](../article-cover-design/SKILL.md)；三维风格方向参考见 [references/cover.md](references/cover.md)。
 
-**产出**：`$DIR/cover.png`, `media_id`, `$COVER_PATH`
+**产出**：`output/cover.png`, `media_id`, `$COVER_PATH`
 
 ---
 
@@ -177,15 +177,15 @@ Phase 4: 配图生成（带 vision 校验）
 
 详细正反例和规划流程见 [references/content.md](references/content.md)。
 
-**产出**：`$DIR/image-plan.md`
+**产出**：`output/image-plan.md`
 
 ---
 
 ## Phase 4：配图生成（带 vision 校验循环）
 
-> **配图开关守卫**：当 `article_image_mode` 为 `cover_only` 或 `text_only` 时，**Phase 4 整体跳过**——不生成任何正文图、不写 `images.json`、正文不内联 `<img>`。封面关·配图开时本 Phase 仍执行，但步骤 4c 的 `ref_image_path` 不得指向未生成的 `$DIR/cover.png`（改不传或链首图）。
+> **配图开关守卫**：当 `article_image_mode` 为 `cover_only` 或 `text_only` 时，**Phase 4 整体跳过**——不生成任何正文图、不写 `images.json`、正文不内联 `<img>`。封面关·配图开时本 Phase 仍执行，但步骤 4c 的 `ref_image_path` 不得指向未生成的 `output/cover.png`（改不传或链首图）。
 
-按 `$DIR/visual-rhythm-plan.md` 中 slot 的顺序生成。每个 slot 执行：
+按 `output/visual-rhythm-plan.md` 中 slot 的顺序生成。每个 slot 执行：
 
 ### 步骤 4a：构建 prompt
 
@@ -223,9 +223,9 @@ generate_image(
   project_id=$PROJECT_ID,
   prompt=<步骤 4a 构建的 prompt>,
   image_type="content",
-  output_path="$DIR/img_N.png",
+  output_path="output/img_N.png",
   task_id=$TASK_ID,
-  ref_image_path=<封面开关开启时 "$DIR/cover.png"；封面关时省略或链到首张已生成图>,
+  ref_image_path=<封面开关开启时 "output/cover.png"；封面关时省略或链到首张已生成图>,
   verify_with_vision=true,
   size=<按 slot 固定：section_opener 用 "4:3"；inline_detail 用 "1:1"；信息图/流程图/对比图默认 "4:3">,
   verification_prompt=<步骤 4b 构建的校验 prompt>,
@@ -235,7 +235,7 @@ generate_image(
 
 **关键**：
 - `size`：必须显式传入，普通正文配图/信息图用 `size="4:3"`，段内细节图用 `size="1:1"`；不得依赖项目级/任务级 image ratio。
-- `ref_image_path`：**封面开关开启时**用 `$DIR/cover.png`（风格锚点）；**封面关·配图开时**不传（或链到首张已生成图），**严禁**指向不存在的 `$DIR/cover.png`。
+- `ref_image_path`：**封面开关开启时**用 `output/cover.png`（风格锚点）；**封面关·配图开时**不传（或链到首张已生成图），**严禁**指向不存在的 `output/cover.png`。
 - `ref_image_path` 只传递"风格语言"，不得复刻封面主体；正文图必须按章节 `visual_brief` / `required_entities` 独立表达。
 - `upload_to_cdn=true` 让**生成与上传原子化**：同一调用内完成生成→保存→校验→压缩→上传微信 CDN。校验通过才上传（不浪费素材位），返回值直接带 `wechat_url` + `media_id`；校验失败则不上传，结果无 `wechat_url`。**不再有独立的 `upload_image` 阶段**——每张图生成的瞬间即持久化到 CDN。
 
@@ -244,7 +244,7 @@ generate_image(
 ```
 analyze_image(
   project_id=$PROJECT_ID,
-  file_path=$DIR/img_N.png,
+  file_path=output/img_N.png,
   prompt=<步骤 4b 构建的校验 prompt>
 )
 ```
@@ -264,10 +264,10 @@ analyze_image(
 
 ### 步骤 4e：记录并立即原子落盘（生成即持久化）
 
-`generate_image(upload_to_cdn=true)` 返回时，**`wechat_url` + `media_id` 已就绪**（或返回 `upload_error`）。**无需调用 `upload_image`**。立即把这张图记录写回 `$DIR/images.json`——**每张图返回即落盘**，使中断最多丢失"正在生成的那一张"。
+`generate_image(upload_to_cdn=true)` 返回时，**`wechat_url` + `media_id` 已就绪**（或返回 `upload_error`）。**无需调用 `upload_image`**。立即把这张图记录写回 `output/images.json`——**每张图返回即落盘**，使中断最多丢失"正在生成的那一张"。
 
 - 从 `generate_image` 返回值取 `wechat_url` → 写入记录的 `url` 字段；`upload_error` 时记到 `upload_error` 字段并用 `upload_image(file_path=...)` 单独重试上传（**不重新生成**）。
-- **原子写** `$DIR/images.json`：先写临时文件 `$DIR/.images.json.tmp` → `fsync` → `rename` 覆盖 `$DIR/images.json`。绝不要"攒齐所有图再一次性写"——那是丢失窗口。
+- **原子写** `output/images.json`：先写临时文件 `output/.images.json.tmp` → `fsync` → `rename` 覆盖 `output/images.json`。绝不要"攒齐所有图再一次性写"——那是丢失窗口。
 - 每条记录必须包含：
   ```json
   {
@@ -292,8 +292,8 @@ analyze_image(
       "attempt_count": 1,
       "sharper_prompt_history": []
     },
-    "ref_image_path": "$DIR/cover.png 或 null（封面关·配图开时）",
-    "file_path": "$DIR/img_01.png",
+    "ref_image_path": "output/cover.png 或 null（封面关·配图开时）",
+    "file_path": "output/img_01.png",
     "url": "https://cdn.../img_01.png",
     "wechat_url": "https://cdn.../img_01.png",
     "media_id": "媒体素材ID（来自 generate_image upload_to_cdn=true）",
@@ -304,7 +304,7 @@ analyze_image(
 
 ### 步骤 4f：插入到文章
 
-按 `slot_id` 和 `section_index` 把 `![描述](CDN_URL)` 插入到 `$DIR/04-article-final.md`：
+按 `slot_id` 和 `section_index` 把 `![描述](CDN_URL)` 插入到 `output/04-article-final.md`：
 - `section_opener`：紧跟 `## 章节标题` 之后
 - `inline_detail`：在 `after_paragraph_index` 指定的段落之后
 - `hero`：紧跟文章第一个 `##` 之前（如有 hero module 文字，则在 hero module 之后）
@@ -320,7 +320,7 @@ analyze_image(
 - [ ] **节奏完整性**：`visual-rhythm-plan.md` 中每个 `##` 都映射到一个 slot
 - [ ] **模板一致性**：所选模板的 rhythm 规则被遵守（如 listicle 的 section_opener 必填、inline_detail forbidden）
 - [ ] **文件完整性**：所有图片文件存在且可访问
-- [ ] **风格一致性**：封面+配图均开启时，`images.json` 中所有内容图 `ref_image_path="$DIR/cover.png"`；封面关·配图开时无 `ref_image_path` 或链首图，且不得指向不存在的 `$DIR/cover.png`
+- [ ] **风格一致性**：封面+配图均开启时，`images.json` 中所有内容图 `ref_image_path="output/cover.png"`；封面关·配图开时无 `ref_image_path` 或链首图，且不得指向不存在的 `output/cover.png`
 - [ ] **视觉多样性**：3 张以上配图使用 3 种以上不同 `composition_type`（清单模板可豁免，因要求统一构图）
 - [ ] **反同质化**：不得连续 3 张正文图复用同主体/同远近景/同色调重心；正文图不得复刻封面主体
 - [ ] **Vision 校验通过率**：至少 80% 的内容图 `verification.passed=true`
@@ -336,8 +336,8 @@ analyze_image(
 
 ## 保存结果
 
-- 含 CDN 图片链接的文章覆盖写回 `$DIR/04-article-final.md`
-- 所有配图信息保存为 `$DIR/images.json`
+- 含 CDN 图片链接的文章覆盖写回 `output/04-article-final.md`
+- 所有配图信息保存为 `output/images.json`
 
 ---
 
@@ -363,7 +363,7 @@ analyze_image(
 | Vision 校验持续失败 | prompt 过于抽象 | 锐化 visual_brief，明确每个 required_entity 的材质、颜色、方位 |
 | 配图与章节无关 | required_entities 与章节原文脱节 | 回到 Phase 3 重新提取，确保 must_match_excerpts 是章节原句 |
 | 所有配图构图雷同 | 未在 rhythm-plan 中分配不同 composition_type | 重新规划 rhythm-plan，强制 3+ 种构图（清单模板除外） |
-| 风格漂移 | 封面开启时未使用封面作为参考图；或封面关闭时错误引用不存在的封面 | 封面+配图均开启时确保内容图 `ref_image_path="$DIR/cover.png"`；封面关·配图开时不传或链首图 |
+| 风格漂移 | 封面开启时未使用封面作为参考图；或封面关闭时错误引用不存在的封面 | 封面+配图均开启时确保内容图 `ref_image_path="output/cover.png"`；封面关·配图开时不传或链首图 |
 | 封面与文章脱节 | 封面 prompt 缺少内容隐喻 | 在封面 prompt 中加入文章核心论点的视觉隐喻 |
 | 节奏违反模板规则 | 未读模板 YAML 的 rhythm 字段 | 重新加载模板，按 rhythm 字段约束 slot 分配 |
 

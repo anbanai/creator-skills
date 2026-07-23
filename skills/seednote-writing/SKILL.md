@@ -246,7 +246,7 @@ Lightroom ✅ 专业全面 / 适合 raw 格式 / 稍重
 
 ## 9. 爆款改写
 
-复刻模式下，先由 `seednote-viral-analysis` skill 生成 `$DIR/viral-template.json`，本 skill 只读取该模板并输出高贴合主题的可发布新笔记。不要重新拆解源笔记，不要调用 `save_template`。
+复刻模式下，先由 `seednote-viral-analysis` skill 生成 `output/viral-template.json`，本 skill 只读取该模板并输出高贴合主题的可发布新笔记。不要重新拆解源笔记，不要调用 `save_template`。
 
 支持 3 种改写模式：
 
@@ -258,7 +258,7 @@ Lightroom ✅ 专业全面 / 适合 raw 格式 / 稍重
 
 ### 9.1 模板输入
 
-读取 `$DIR/viral-template.json`，至少包含：
+读取 `output/viral-template.json`，至少包含：
 
 - `title_template`
 - `cover_template`
@@ -330,10 +330,10 @@ Lightroom ✅ 专业全面 / 适合 raw 格式 / 稍重
 - 图文或图片**主体由 AI 生成**的笔记，发布时应按平台规则声明 AI 生成（小红书发布时可勾选"由 AI 生成"）；
 - 仅用 AI 辅助资料搜集/语言润色、核心内容为人创的，建议文末注明"创作中使用了 AI 工具辅助，核心观点为原创"；
 - 标明 AI 手段**不会减损作品价值**，反而提升透明度与信任；**隐瞒才会限流**。
-在 `$DIR/compliance-report.md` 记录标识建议（建议标识 / 无需标识 / 已标识），由发布方最终执行。
+在 `output/compliance-report.md` 记录标识建议（建议标识 / 无需标识 / 已标识），由发布方最终执行。
 
-生成 `$DIR/compliance-report.md` 记录所有修改。
+生成 `output/compliance-report.md` 记录所有修改。
 
 ### 9.6 模板边界
 
-模板持久化由 seednote 完成 hook 处理。写作过程中只消费 `$DIR/viral-template.json`，不得调用 `save_template`，不得修改 `$DIR/template-meta.json`，除非发现模板明显无效并在 `compliance-report.md` 中记录问题。
+模板持久化由 seednote 完成 hook 处理。写作过程中只消费 `output/viral-template.json`，不得调用 `save_template`，不得修改 `output/template-meta.json`，除非发现模板明显无效并在 `compliance-report.md` 中记录问题。

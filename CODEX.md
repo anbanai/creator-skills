@@ -29,10 +29,10 @@ The plugin follows Codex's **Skill + Subagent + MCP** model:
 | Subagent | Triggers | Pipeline |
 |----------|----------|----------|
 | `article` | "写文章", "发文章", "公众号文章" | Research → Write → De-AI → SEO → Cover → Illustrations → HTML → Draft |
-| `seednote` | "种草笔记", "种草", "复刻", "仿写" | Research → Viral analysis (replicate) → Content → image-plan/runtime mode output → Compliance → Delivery validation → `$DIR` delivery |
+| `seednote` | "种草笔记", "种草", "复刻", "仿写" | Research → Viral analysis (replicate) → Content → image-plan/runtime mode output → Compliance → Delivery validation → `output/` delivery |
 | `live-slicer` | "直播切片", "剪直播", "听悟" | ffmpeg prep → TingWu transcription → Invalid sentence filter → Segment/subject planning → Batch cuts/concat → CapCut export → Report |
 | `designer` | "上色", "填色", "线稿", "color consistency", "designer" | Init → Progressive coloring → Full audit → Best-effort correction/backtracking → Report with `needs_img2img` where strict line preservation is impossible |
-| `ecommerce` | "电商出图", "商品图", "主图", "详情页", "商详", "SKU图" | Product Bible → Selling points → Asset plan → Provider-adaptive generation → Vision self-check → Delivery validation → `$DIR` delivery |
+| `ecommerce` | "电商出图", "商品图", "主图", "详情页", "商详", "SKU图" | Product Bible → Selling points → Asset plan → Provider-adaptive generation → Vision self-check → Delivery validation → `output/` delivery |
 
 **Codex-specific behavior**:
 - Subagents only spawn when the user **explicitly** asks ("use the article subagent to ...", "delegate to X"). Codex does not auto-spawn subagents.
@@ -59,7 +59,6 @@ Key skill groups:
 The installer registers `https://api.creator.anbanai.com/mcp` with Bearer token auth via `ANBAN_API_KEY`. Key MCP tools:
 
 - `list_projects`, `get_project_profile`, `list_drafts`, `list_published_articles`, `list_project_titles`
-- `prepare_workspace`
 - `render_template`, `convert_markdown`
 - `generate_image`, `upload_image`, `download_image`, `compress_image`, `analyze_image`
 - `publish_draft` (WeChat draft box)
@@ -81,8 +80,8 @@ The current Codex plugin manifest does not accept bundled Hooks. Each TOML subag
 
 ## Key Conventions
 
-- **Zero user interaction**: All subagents run autonomously. Decisions are recorded in `$DIR/*.md` files, never by asking the user.
-- **Workspace isolation**: Each creation task calls `prepare_workspace` MCP tool to obtain the canonical workspace path, then creates the directory locally with `mkdir -p`. Every artifact remains there; server `task_files`, `execution_id`, and OSS storage own their persistence and version boundaries.
+- **Zero user interaction**: All subagents run autonomously. Decisions are recorded in `output/*.md` files, never by asking the user.
+- **Runtime-owned workspace**: Every managed execution receives a task-private workspace, a pre-created `output/`, and `TASK_ID` in structured runtime context. Agents and Skills write named `output/<filename>` artifacts and never create, discover, move, or rename the output directory.
 - **File naming**: Subagents use numbered prefixes (`01-research.md`, `02-outline.md`...) or semantic names (`cover.png`, `content.md`, `image-plan.md`).
 - **Image reference chain**: First image establishes visual style; subsequent images use the first as reference to maintain consistency. For line-art coloring, current `generate_image` is best-effort reference-image generation, not a guaranteed line-preserving colorize tool.
 - **Skill references**: Subagents invoke skills via `using the <skill-name> skill` phrasing, not the Skill tool.

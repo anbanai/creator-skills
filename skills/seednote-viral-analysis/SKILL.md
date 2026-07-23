@@ -31,7 +31,7 @@ description: Use when analyzing or decomposing a Seednote (种草笔记) viral n
 - 互动数据：点赞、收藏、评论、分享、浏览/曝光（有则用）
 - 评论信号：高频词、追问、争议点、购买/行动意图（有则用）
 - 当前账号画像：定位、受众、关键词、历史标题、内容边界
-- 工作目录 `$DIR`
+- 工作目录 `output`
 
 缺失任何数据时不要编造；在评分中降低 `confidence`，并写入 `missing_data`。
 
@@ -40,9 +40,9 @@ description: Use when analyzing or decomposing a Seednote (种草笔记) viral n
 1. **收集证据**：从源笔记中摘出标题结构、封面元素、正文段落、标签、评论高频词、互动数据。
 2. **7 维拆解**：按选题、标题、封面、正文、互动、标签、评论信号分析；每维都输出 `observation`、`mechanism`、`transferability`、`action`。
 3. **评分与置信度**：整体输出 `score`、`confidence`、`evidence_count`、`missing_data`、`why_not_higher`；不要给每个维度裸分。
-4. **提取模板**：生成 `$DIR/viral-template.json`，供 `seednote-writing` 直接消费。
-5. **生成元数据**：生成 `$DIR/template-meta.json`，供 hook 判断是否保存模板。
-6. **写分析报告**：生成 `$DIR/source-analysis.md`，让用户能看懂"为什么火"和"我怎么用"。
+4. **提取模板**：生成 `output/viral-template.json`，供 `seednote-writing` 直接消费。
+5. **生成元数据**：生成 `output/template-meta.json`，供 hook 判断是否保存模板。
+6. **写分析报告**：生成 `output/source-analysis.md`，让用户能看懂"为什么火"和"我怎么用"。
 
 详细评分依据见 [breakdown-rubric.md](references/breakdown-rubric.md)。
 报告格式见 [report-format.md](references/report-format.md)。
@@ -75,7 +75,7 @@ JSON 字段规范见 [template-schema.md](references/template-schema.md)。
 
 ## 固定产物
 
-必须在 `$DIR` 下生成：
+必须在 `output` 下生成：
 
 - `source-analysis.md`：用户可读报告，重点是证据、机制、迁移判断和行动建议。
 - `viral-template.json`：写作 skill 可直接读取的结构化模板。

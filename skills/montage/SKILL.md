@@ -22,41 +22,41 @@ Use this skill only for Anban `montage` tasks.
 
 - `$TASK_ID`
 - `$PROJECT_ID`
-- `$ANBAN_MONTAGE_SUBMODULE_PATH` (preferred when set; managed tasks set it to the writable `/workspace/montage` runtime)
+- `$ANBAN_MONTAGE_SUBMODULE_PATH` (fixed to the writable `/workspace/openmontage` project root for managed tasks)
 - `montage-input.json`
 - `montage-tool-policy.json`
 - `montage-pipeline-defaults.json`
 - project profile from Anban MCP
-- configured Montage submodule path
 - OpenMontage provider secrets from environment variables only
 
 ## Required Files
 
-- `montage-project.json`: adapter manifest sent to Montage
+- `output/montage-project.json`: adapter manifest sent to Montage
 - `montage-tool-policy.json`: non-secret capability preferences configured by the server
 - `montage-pipeline-defaults.json`: non-secret pipeline defaults configured by the server
-- `delivery-manifest.json`: normalized Anban delivery manifest
-- `final.mp4`: final video when the pipeline succeeds
-- `failure-diagnosis.md`: required when the pipeline cannot complete
+- `output/delivery-manifest.json`: normalized Anban delivery manifest
+- `output/final.mp4`: final video when the pipeline succeeds
+- `output/failure-diagnosis.md`: required when the pipeline cannot complete
 
 ## Rules
 
 - Run all creative pipeline work through the bundled OpenMontage adapter and its provider registry.
-- Run managed Montage commands from the complete writable workspace copy at `$ANBAN_MONTAGE_SUBMODULE_PATH`; keep generated projects, checkpoints, and relative `output/` files inside that directory.
+- The managed runtime provides a task-private workspace, structured `TASK_ID`, and a pre-created `output/`. Do not create, discover, move, or rename the output directory.
+- Run managed Montage commands from `/workspace/openmontage`, with `$ANBAN_MONTAGE_SUBMODULE_PATH` fixed to that project root, and write final or resume-critical artifacts through its runtime-provided `output` link.
 - Do not expose raw Montage pipeline internals as Anban stable schema.
 - Do not modify files under `third_party/OpenMontage`.
-- Resolve the upstream runtime from `$ANBAN_MONTAGE_SUBMODULE_PATH` first, then fall back to the configured/default `third_party/OpenMontage` path.
-- Secrets only arrive through environment variables. Never write provider keys to `montage-project.json`, task files, logs, MCP feedback, or failure diagnosis.
+- Do not fall back to `third_party/OpenMontage` or any repository checkout during managed execution.
+- Secrets only arrive through environment variables. Never write provider keys to `output/montage-project.json`, task files, logs, MCP feedback, or failure diagnosis.
 - Before production, run the OpenMontage registry capability check (`provider_menu_summary()` or the equivalent registry command) and compare the selected pipeline's required/optional tools with the configured provider envelope.
 - Let OpenMontage selectors/registry choose concrete providers from the configured policy and real availability; do not hardcode Anban-side provider routing.
-- Use Anban MCP tools for project profile, workspace preparation, progress, uploads, task files, and feedback.
+- Use Anban MCP tools for project profile, progress, uploads, task files, and feedback.
 - 托管任务自动批准常规 creative gate，但不得跳过 checkpoint；每个 checkpoint 仍执行，并在 Montage decision log 中记录 `anban_managed_task` 预授权来源、自动选择和结果。
-- Authentication, required capability, hard budget, safety, source corruption, or impossible-delivery blockers must write `failure-diagnosis.md` and terminate. Full-run preauthorization never overrides these blockers.
+- Authentication, required capability, hard budget, safety, source corruption, or impossible-delivery blockers must write `output/failure-diagnosis.md` and terminate. Full-run preauthorization never overrides these blockers.
 - Do not expose the Backlot page directly. Retain only stable delivery files and structured checkpoint, timeline, and run-log artifacts required by Anban.
 
 ## Adapter Manifest
 
-Write `montage-project.json` with:
+Write `output/montage-project.json` with:
 
 ```json
 {
@@ -75,7 +75,7 @@ Write `montage-project.json` with:
     "source": "anban_managed_task",
     "scope": "full_run"
   },
-  "output_dir": "output/montage/$TASK_ID"
+  "output_dir": "output"
 }
 ```
 

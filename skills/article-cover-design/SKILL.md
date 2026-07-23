@@ -25,7 +25,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 
 公众号文章的封面可由用户在创建任务/计划时关闭。当结构化运行控制 `article_image_mode` 为 `content_only` 或 `text_only` 时，**整个本 skill 跳过**：
 
-- 不调 `generate_image`、不生成 `$DIR/cover.png`、不写 `cover-prompt.md`、不取 `media_id`/`wechat_url`。
+- 不调 `generate_image`、不生成 `output/cover.png`、不写 `cover-prompt.md`、不取 `media_id`/`wechat_url`。
 - 节奏规划 `visual-rhythm-plan.md` 的 hero slot `image_url=null`。
 - 发布草稿（`article-publishing` skill）**不带 `thumb_media_id`**——即使有正文配图也**不复用**作封面。
 - 两关（纯文字）时，在 `final-review.md` 记录「未生成封面，公众号后台可能不显示封面/需手动设置」。
@@ -34,7 +34,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 
 ---
 
-本 skill 是公众号文章封面（`thumb_media_id`）的**唯一权威设计入口**，也是全篇内容配图的**风格锚点**（产物 `$DIR/cover.png` 供后续内容图 `ref_image_path` 继承）。它不是「随便生成一张横图」，而是一套多层方法论，确保封面达成：订阅号列表抓眼球（CTR）、转发卡主体完整、微信零裁剪、一眼传达主题、品牌调性统一。
+本 skill 是公众号文章封面（`thumb_media_id`）的**唯一权威设计入口**，也是全篇内容配图的**风格锚点**（产物 `output/cover.png` 供后续内容图 `ref_image_path` 继承）。它不是「随便生成一张横图」，而是一套多层方法论，确保封面达成：订阅号列表抓眼球（CTR）、转发卡主体完整、微信零裁剪、一眼传达主题、品牌调性统一。
 
 ## 核心规格（写死，不可改）
 
@@ -63,7 +63,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 
 ## 封面质量闸门
 
-生成前先从 `$DIR/context-brief.md`、`$DIR/seo-result.md`、digest 和 `$DIR/04-article-final.md` 提炼 `cover_strategy` 并写入 `cover-prompt.md`：
+生成前先从 `output/context-brief.md`、`output/seo-result.md`、digest 和 `output/04-article-final.md` 提炼 `cover_strategy` 并写入 `cover-prompt.md`：
 
 - `final_title`：最终标题
 - `digest_hook`：摘要前半句的利益点/悬念/反差
@@ -91,7 +91,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 
 封面**必须从文章内容推导**，不是随机图：
 
-1. 读 `$DIR/context-brief.md`、`$DIR/seo-result.md` 和 `$DIR/04-article-final.md`，提取**最终标题**、digest 前半句、目标读者、读者痛点/任务、文章承诺、正文证据和最强视觉素材（文章已有的比喻/意象/案例/场景）。
+1. 读 `output/context-brief.md`、`output/seo-result.md` 和 `output/04-article-final.md`，提取**最终标题**、digest 前半句、目标读者、读者痛点/任务、文章承诺、正文证据和最强视觉素材（文章已有的比喻/意象/案例/场景）。
 2. 取视觉锚点 `$VISUAL_STYLE`：
    - `get_project_profile` 的 `visual_style` 非空 → 以它为**权威锚点**，三维分析只做**细化**（配色/情绪/构图），不得偏离。
    - 为空 → 按账号定位 + 内容主题 + 受众三维分析兜底（方向见下方「三维方向参考」）。
@@ -197,7 +197,7 @@ generate_image(
   project_id=$PROJECT_ID,
   prompt=<第二步的封面 prompt>,
   image_type="cover",
-  output_path="$DIR/cover.png",
+  output_path="output/cover.png",
   task_id=$TASK_ID,
   size="21:9",
   verify_with_vision=true,
@@ -208,7 +208,7 @@ generate_image(
 
 - `size="21:9"` 是生成提示比；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383**（你无需管最终比例）。
 - `upload_to_cdn=true`：vision 校验通过才上传，同一调用内完成「生成→裁剪→校验→上传」，直接返回 `media_id`（发布草稿的 thumb）+ `wechat_url`；校验未通过则**不上传**（不浪费微信素材位）。
-- 返回 `upload_error`（生成成功但上传失败）→ 用 `upload_image(file_path="$DIR/cover.png")` 单独重传，**无需重新生成**。
+- 返回 `upload_error`（生成成功但上传失败）→ 用 `upload_image(file_path="output/cover.png")` 单独重传，**无需重新生成**。
 
 ## 第五步：迭代闭环
 
@@ -226,7 +226,7 @@ generate_image(
 
 ## 第六步：落盘审计（cover-prompt.md，硬性）
 
-封面构建完成后，**原子写入 `$DIR/cover-prompt.md`**（先写 `$DIR/.cover-prompt.md.tmp` → `fsync` → `rename` 覆盖），完整记录封面决策，便于复盘与风格漂移排查。内容必须含：
+封面构建完成后，**原子写入 `output/cover-prompt.md`**（先写 `output/.cover-prompt.md.tmp` → `fsync` → `rename` 覆盖），完整记录封面决策，便于复盘与风格漂移排查。内容必须含：
 
 - **比例**：公众号 2.35:1（900×383px 标准；服务端强制裁剪）。
 - **账号视觉风格来源**：`$VISUAL_STYLE` / `$COLOR_PALETTE` / `$MOOD` + 三维分析依据（账号定位/内容主题/受众），或配置锚点来源（`visual_style_source`）。
@@ -239,7 +239,7 @@ generate_image(
 - **封面质量评分卡**：`visual_quality_scorecard` + vision prompt + 结果（passed/score/各维度/missing_or_forbidden）。
 - **封面有效性评分卡**：`cover_effectiveness_scorecard` + `generic_swap_test` / `promise_proof_test` / `audience_motivation_test` 结果；仅有旧的 6 维 vision 全 high 不得通过。
 
-**产出**：`$DIR/cover.png`、`media_id`、`$COVER_CDN_URL`、`$DIR/cover-prompt.md`。
+**产出**：`output/cover.png`、`media_id`、`$COVER_CDN_URL`、`output/cover-prompt.md`。
 
 **注意**：封面仅用于 `thumb_media_id`，**不得复用为正文内容图**。正文每张图的 `wechat_url` 必须各自独立生成上 CDN——服务端 `publish_draft` 会硬拦截「正文 ≥2 图但唯一 URL==1」的草稿。
 

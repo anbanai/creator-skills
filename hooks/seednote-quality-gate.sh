@@ -30,10 +30,8 @@ if payload.get("agent_type") not in ("seednote", "anban:seednote"):
 
 root = Path(os.environ.get("WORKSPACE_ROOT") or os.getcwd())
 
-failure_candidates = [root / "output" / "failure-state.json"]
-for failure_path in failure_candidates:
-    if not failure_path.is_file():
-        continue
+failure_path = root / "output" / "failure-state.json"
+if failure_path.is_file():
     try:
         failure = json.loads(failure_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -52,14 +50,6 @@ for failure_path in failure_candidates:
     sys.exit(0)
 
 output_dir = root / "output"
-if not output_dir.is_dir():
-    block(
-        "种子笔记机械闸门：未找到规范任务输出目录 output/。\n"
-        '请先执行 prepare_workspace(content_type="seednote", task_id=$TASK_ID)，'
-        "并将所有交付物直接留在规范 output/ 目录。"
-    )
-    sys.exit(0)
-
 seednote_dir = output_dir
 missing: list[str] = []
 
@@ -76,14 +66,14 @@ required_artifacts = {
 }
 for name, purpose in required_artifacts.items():
     if not (seednote_dir / name).is_file():
-        missing.append(f"{name}（缺少{purpose}）")
+        missing.append(f"output/{name}（缺少{purpose}）")
 
 plan_path = seednote_dir / "image-plan.md"
 if plan_path.is_file():
     plan = plan_path.read_text(encoding="utf-8", errors="replace")
     match = re.search(r"计划图片数量[:：]\s*(\d+)", plan)
     if not match:
-        missing.append("image-plan.md 缺「计划图片数量」字段（说明 skill 步骤 3 未执行）")
+        missing.append("output/image-plan.md 缺「计划图片数量」字段（说明 skill 步骤 3 未执行）")
     else:
         expected = int(match.group(1))
         images = [
@@ -96,7 +86,7 @@ if plan_path.is_file():
         if image_count != expected:
             missing.append(f"图片数量（当前 {image_count} 张，应等于 image-plan.md 声明的 {expected} 张）")
         if not (seednote_dir / "cover.png").is_file():
-            missing.append("cover.png（封面必选）")
+            missing.append("output/cover.png（封面必选）")
         content_count = len([p for p in images if p.name.startswith("image_")])
         if content_count > 3:
             missing.append(f"内容图超过 3 张上限（当前 {content_count} 张，应 ≤3）")
@@ -106,24 +96,24 @@ if summary_path.is_file():
     try:
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        missing.append(f"reference-usage-summary.json 无法解析：{exc}")
+        missing.append(f"output/reference-usage-summary.json 无法解析：{exc}")
     else:
         outputs = summary.get("outputs")
         if not isinstance(outputs, list) or not outputs:
-            missing.append("reference-usage-summary.json.outputs 为空，未记录逐图核验结果")
+            missing.append("output/reference-usage-summary.json.outputs 为空，未记录逐图核验结果")
         else:
             for output in outputs:
                 filename = output.get("file_name") or "<unknown>"
                 verification = output.get("verification") or {}
                 if verification.get("passed") is not True:
-                    missing.append(f"{filename} 视觉核验未通过（passed={verification.get('passed')!r}）")
+                    missing.append(f"output/{filename} 视觉核验未通过（passed={verification.get('passed')!r}）")
 
 if missing:
     block(
         f"种子笔记机械闸门未通过（{seednote_dir}），缺失：\n"
         + "".join(f"  - {item}\n" for item in missing)
-        + "\n请完成 seednote-visual-design 规划和 generate_image 原子视觉核验，并将全部产物留在 output/。"
-        + "若依赖不可用，写入结构化 failure-state.json 后停止；禁止用 prompt 质量或文件尺寸代替视觉核验。"
+        + "\n请完成 seednote-visual-design 规划和 generate_image 原子视觉核验，并写入上述显式 output/<filename> 路径。"
+        + "若依赖不可用，写入 output/failure-state.json 后停止；禁止用 prompt 质量或文件尺寸代替视觉核验。"
     )
 
 sys.exit(0)

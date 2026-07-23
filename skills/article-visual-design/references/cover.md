@@ -19,7 +19,7 @@
 
 ## 角色定位
 
-封面在 `visual-rhythm-plan.md` 中对应 `hero` slot（`image_size=full-bleed`, `2.35:1`），是全篇的视觉锚点。封面定调后，所有内容配图通过 `ref_image_path="$DIR/cover.png"` 继承风格。详见 [rhythm.md](rhythm.md)。
+封面在 `visual-rhythm-plan.md` 中对应 `hero` slot（`image_size=full-bleed`, `2.35:1`），是全篇的视觉锚点。封面定调后，所有内容配图通过 `ref_image_path="output/cover.png"` 继承风格。详见 [rhythm.md](rhythm.md)。
 
 封面也必须通过 vision 校验（`required_entities` 来自文章核心隐喻），不通过则重试一次，仍失败请求用户协助。
 
@@ -143,7 +143,7 @@ A 2.35:1 horizontal image for a WeChat article cover. Traditional Chinese aesthe
 
 ## 落盘 cover-prompt.md（硬性要求）
 
-封面 prompt 构建完成后，**必须原子写入 `$DIR/cover-prompt.md`**（先写 `.cover-prompt.md.tmp` → `fsync` → `rename` 覆盖），完整记录封面生成决策，便于复盘与风格漂移排查。内容必须包含：
+封面 prompt 构建完成后，**必须原子写入 `output/cover-prompt.md`**（先写 `.cover-prompt.md.tmp` → `fsync` → `rename` 覆盖），完整记录封面生成决策，便于复盘与风格漂移排查。内容必须包含：
 
 - **比例**：公众号 `2.35:1`（900×383px 标准）
 - **账号视觉风格来源**：`$VISUAL_STYLE` / `$COLOR_PALETTE` / `$MOOD`，以及三维分析依据（账号定位 / 内容主题 / 目标受众 各自如何决定视觉方向）

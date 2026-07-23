@@ -118,7 +118,7 @@ delegate to designer: colorize the line art at /path/to/lineart/ using a warm su
 use the live-slicer subagent on /path/to/live.mp4 — pull 5 high-density clips
 ```
 
-The subagent runs autonomously, writes intermediate artifacts to `$DIR/*.md`, calls MCP tools, and emits a delivery summary on completion. **You cannot interrupt mid-run** (zero-interaction contract).
+The managed runtime supplies a task-private workspace, a pre-created `output/`, and structured `TASK_ID`. The subagent runs autonomously, writes named `output/<filename>` artifacts, calls MCP tools, and emits a delivery summary on completion. It does not create, discover, move, or rename the output directory. **You cannot interrupt mid-run** (zero-interaction contract).
 
 ### Hybrid
 
@@ -133,10 +133,10 @@ using the article-visual-design skill, generate a 2.35:1 cover for the article a
 | Subagent | What it produces |
 |----------|-----------------|
 | `article` | Researched outline → final Markdown → WeChat-safe HTML → uploaded cover + content images → published draft |
-| `seednote` | Topic/viral analysis → Markdown note (title + body + hashtags) → image-plan/runtime mode output → delivery validation → `$DIR` delivery |
+| `seednote` | Topic/viral analysis → Markdown note (title + body + hashtags) → image-plan/runtime mode output → delivery validation → `output/` delivery |
 | `designer` | Per-lineart `colored_NN.png` + Color Bible + consistency report (PASS/MINOR/FAIL per entity) + manual-review flags |
 | `live-slicer` | metadata.json + audio.mp3 + cover.jpg + TingWu analysis + filtered sentences + clip plan + exported MP4s + CapCut drafts + transcript.md + summary.md |
-| `ecommerce` | Product Bible (analyze product photos) → selling points (FABE) → asset plan → anchor-first generation with provider-adaptive ref strategy + vision self-check → compliance (广告法极限词) → delivery validation → `$DIR` manifest delivery |
+| `ecommerce` | Product Bible (analyze product photos) → selling points (FABE) → asset plan → anchor-first generation with provider-adaptive ref strategy + vision self-check → compliance (广告法极限词) → delivery validation → `output/manifest.json` delivery |
 
 ## Troubleshooting
 

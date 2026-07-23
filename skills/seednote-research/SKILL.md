@@ -131,7 +131,7 @@ recency_weight: 24h→1.0, 7d→0.8, 30d→0.5, 更早→0.3
 novelty_bonus: 同角度笔记<3 → 1.2, 否则 → 1.0
 ```
 
-字段缺失时按 0 计入并在 `missing_fields` 中记录；不要补造数据。无外部数据时不得套用 CES 或伪造互动率，改按“用户主题匹配度、账号定位匹配度、与已有标题差异度、内容具体性”记录定性依据。评分明细或降级依据、最终选题理由和数据来源字段写入 `$DIR/topic-analysis.md`。
+字段缺失时按 0 计入并在 `missing_fields` 中记录；不要补造数据。无外部数据时不得套用 CES 或伪造互动率，改按“用户主题匹配度、账号定位匹配度、与已有标题差异度、内容具体性”记录定性依据。评分明细或降级依据、最终选题理由和数据来源字段写入 `output/topic-analysis.md`。
 
 ## 复刻模式源笔记获取
 
@@ -139,8 +139,8 @@ novelty_bonus: 同角度笔记<3 → 1.2, 否则 → 1.0
 
 1. 通过 Agent-Reach backend 的 search/feed/signed URL 获取真实 `feed_id` 与 `xsec_token`。
 2. 按 `active_backend` 获取笔记详情、互动数据和评论数据。
-3. 将原始详情、`data_source=agent-reach`、`active_backend`、`backend_command_family`、`token_source`、互动数据、评论摘要、`missing_fields` 和 `fallback_reason` 写入 `$DIR/source-note.md`。
-4. 后续由 `seednote-viral-analysis` skill 读取 `$DIR/source-note.md`，生成 `$DIR/source-analysis.md`、`$DIR/viral-template.json`、`$DIR/template-meta.json`。
+3. 将原始详情、`data_source=agent-reach`、`active_backend`、`backend_command_family`、`token_source`、互动数据、评论摘要、`missing_fields` 和 `fallback_reason` 写入 `output/source-note.md`。
+4. 后续由 `seednote-viral-analysis` skill 读取 `output/source-note.md`，生成 `output/source-analysis.md`、`output/viral-template.json`、`output/template-meta.json`。
 
 **边界**：不要在本 skill 中提取爆款模板，不要调用 `save_template`，不要生成改写正文。仅有外部 ID/链接且无法取得源内容时，写结构化 `failure-state.json` 并从 `research` 恢复；这条失败规则不适用于原创模式。
 
@@ -148,5 +148,5 @@ novelty_bonus: 同角度笔记<3 → 1.2, 否则 → 1.0
 
 | 模式 | 产出文件 |
 |------|----------|
-| 原创模式 | `$DIR/topic-analysis.md`（候选话题、外部评分或降级依据、最终选题理由、数据来源字段） |
-| 复刻模式 | `$DIR/source-note.md`（源笔记原始详情、互动数据、评论摘要、Agent-Reach 数据来源字段、数据缺失项） |
+| 原创模式 | `output/topic-analysis.md`（候选话题、外部评分或降级依据、最终选题理由、数据来源字段） |
+| 复刻模式 | `output/source-note.md`（源笔记原始详情、互动数据、评论摘要、Agent-Reach 数据来源字段、数据缺失项） |

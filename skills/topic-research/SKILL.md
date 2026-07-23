@@ -43,19 +43,19 @@ Use this Skill for topic source selection, duplicate checks, candidate generatio
 
 Write these file-backed artifacts:
 
-1. `$DIR/01-research.md` with:
+1. `output/01-research.md` with:
    - topic source: user prompt / claimed pool item / Skill-generated candidate;
    - existing titles and exclusion list;
    - candidates, angles, audience fit, freshness, risk, and score;
    - final Top 1 topic and reason.
-2. `$DIR/02-outline.md` with:
+2. `output/02-outline.md` with:
    - final title;
    - hook;
    - `##` sections;
    - each section's claim, context anchor, supporting material, and reader takeaway;
    - CTA / ending direction;
    - SEO seed keywords.
-3. `$DIR/context-brief.md` when the caller has not already created one, containing original user need, project positioning, historical avoidance, chosen topic reason, and section anchors.
+3. `output/context-brief.md` when the caller has not already created one, containing original user need, project positioning, historical avoidance, chosen topic reason, and section anchors.
 
 ## Candidate And Outline Protocol
 
@@ -81,10 +81,10 @@ Outline templates are chosen internally:
 
 ## Failure Handling
 
-- `claim_topic` returns an item but it duplicates history: keep the claimed topic, adjust the wording/angle, and record the change in `$DIR/01-research.md`.
+- `claim_topic` returns an item but it duplicates history: keep the claimed topic, adjust the wording/angle, and record the change in `output/01-research.md`.
 - History tools fail: record the failure and continue with an explicit risk note.
 - Candidate confidence is low: choose the least risky topic and add a "low confidence" note instead of blocking the whole task.
-- Outline lacks concrete anchors: return to research notes and add supporting material before writing `$DIR/02-outline.md`.
+- Outline lacks concrete anchors: return to research notes and add supporting material before writing `output/02-outline.md`.
 
 ## 深入参考
 

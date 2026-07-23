@@ -47,24 +47,31 @@ maxTurns: 120
 | **修正动态** | 颜色问题若需"只改色不动线"才能修 → 直接标 `needs_img2img`，不烧轮次全量重绘（重绘会改线，可能越修越破）；只在"重绘既能修色又不明显退化线稿"时才重生成 |
 | **回溯统一** | **默认前向不回溯**（对齐同仓 agent）；仅当颜色一致性收益明确大于线稿重绘风险、且任务要求严格一致时，才 opt-in 回溯，并带线稿回归守卫 |
 
-决策过程和失败原因透明记录在 `$DIR/*.md` 文件中。
+决策过程和失败原因透明记录在 `output/*.md` 文件中。
 
 ## MCP 工具规则
 
 - MCP server `creator` 由插件级 `.mcp.json` 注入；不要在本 agent frontmatter 中声明 `mcpServers`，Claude Code 插件 subagent 会忽略该字段。
-- **必须使用 Claude Code 内置 MCP 工具**调用服务端接口（`generate_image`、`upload_image`、`compress_image`、`download_image`、`analyze_image`、`prepare_workspace`、`update_task_progress` 等）。MCP server 由插件级 `.mcp.json` 注入，不要在本 agent frontmatter 中声明 `mcpServers`。
+- **必须使用 Claude Code 内置 MCP 工具**调用服务端接口（`generate_image`、`upload_image`、`compress_image`、`download_image`、`analyze_image`、`update_task_progress` 等）。MCP server 由插件级 `.mcp.json` 注入，不要在本 agent frontmatter 中声明 `mcpServers`。
 - **Claude Code subagent 的 `tools:` 字段是 allowlist**。不要在本 agent frontmatter 中声明 `tools:`；省略 `tools:` 才能继承包含 MCP 在内的可用工具。如果运行时无法看到 `generate_image` 等 MCP 能力，停止并报告 MCP 工具未注入。
-- **`generate_image` 的 ref 按 provider 适配**（详见执行管线步骤 3 / `line-art-coloring` skill）：Seedream 用单张 `ref_image_path`，OpenAI(gpt-image) `ref_image_paths` ≤16、Gemini ≤10。返回值含 `provider`/`model`/`revised_prompt`——provider 以返回值为权威来源；确认实际使用模型并把每次调用的 `prompt/provider/model/size/output_path/ref_image_path/revised_prompt` 追加到 `$DIR/image-prompts.md`。
+- **`generate_image` 的 ref 按 provider 适配**（详见执行管线步骤 3 / `line-art-coloring` skill）：Seedream 用单张 `ref_image_path`，OpenAI(gpt-image) `ref_image_paths` ≤16、Gemini ≤10。返回值含 `provider`/`model`/`revised_prompt`——provider 以返回值为权威来源；确认实际使用模型并把每次调用的 `prompt/provider/model/size/output_path/ref_image_path/revised_prompt` 追加到 `output/image-prompts.md`。
 - **图像视觉分析**使用 `analyze_image`（project_id, image_url/file_path, prompt），用于：实体识别、候选评估、一致性审计、线稿验证
 - **`analyze_image` 一次只分析一张图片**。调用时传 `image_url` 或 `file_path` 二选一；同时传 `file_path` 和 `image_url` 时服务端只会使用 `file_path`。线稿验证必须先为原始线稿生成线稿指纹，再分析上色图，将上色图审计结果与线稿指纹逐项比对。
 - **Read 工具不用于图像视觉分析**——在本环境中 Read 上传图像到 CDN，不提供视觉内容
 - **MCP 工具不可用时**执行以下诊断步骤：
-  1. 检查工具列表是否包含 `generate_image`、`analyze_image`、`download_image`、`prepare_workspace`、`update_task_progress`
+  1. 检查工具列表是否包含 `generate_image`、`analyze_image`、`download_image`、`update_task_progress`
   2. 用 `test -n "$ANBAN_API_KEY"` 只检查密钥是否存在，不打印密钥值；`ANBAN_API_URL` 为空时按 `.mcp.json` 默认值 `https://api.creator.anbanai.com` 理解，可记录 `ANBAN_DEFAULT_PROJECT` 是否存在
   3. 如果 `ANBAN_API_KEY` 为空，报告缺少变量并停止
   4. 如果 `ANBAN_DEFAULT_PROJECT` 为空，调用 `list_projects` 自动选择项目；无法唯一判断时报告可选项目并停止等待配置
   5. 如果环境变量存在但工具调用失败，记录完整错误信息（状态码、响应体）后停止
   6. 不要绕过 MCP、不要降级到脚本或自定义 HTTP 调用
+
+## Runtime workspace contract
+
+The managed runtime provides a task-private workspace and a pre-created output/
+directory. Write final and resume-critical artifacts to the explicit
+output/<filename> paths below. Do not create, discover, move, or rename the
+output directory. TASK_ID is supplied by structured runtime context.
 
 ---
 
@@ -72,16 +79,12 @@ maxTurns: 120
 
 ### 步骤 1：初始化
 
-Call `update_task_progress(task_id=$TASK_ID, stage="init", title="初始化", description="加载方法论、获取项目、工作目录和图像模型")`。
+Call `update_task_progress(task_id=$TASK_ID, stage="init", title="初始化", description="加载方法论、获取项目和图像模型")`。
 
 1. 通过 `echo $ANBAN_DEFAULT_PROJECT` 获取 `$PROJECT_ID`
    - 如果为空，调用 `list_projects`；只有一个可用项目时自动使用，多个项目按任务输入相关性稳定排序后选择 Top 1；没有可用项目时写结构化失败诊断并停止
-2. 获取 `$TASK_ID`（从 `.task-context` 或 CWD 目录名）
+2. 从结构化运行时上下文读取 `$TASK_ID`
 3. **确认图像模型 provider**：provider 的权威来源是 `generate_image` 返回的 `provider` 字段——首次调用后据此确认并补记。也可从 `get_project_profile.image_model.provider` 预判，但以返回值为准。provider（`openai` / `gemini` / `volcengine`）决定步骤 3 的 ref 策略；确认前按 Seedream 单 ref 与 OpenAI·Gemini 多 ref 两套准备。agent 不选择或传递模型 key。
-4. 尝试调用 `prepare_workspace(content_type="design", task_id=$TASK_ID)` 获取 `$DIR`
-   - prepare_workspace 返回的 path 可能是相对路径；相对路径以当前任务工作区 `$CWD` 为根，例如返回 `output` 时使用 `$CWD/output`
-   - 如果 `prepare_workspace` 调用失败，使用 `$CWD/output/` 作为 `$DIR`
-5. `mkdir -p "$DIR"`
 
 ### 步骤 2：确认输入线稿
 
@@ -91,7 +94,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="init", title="初始化", de
 - Read 每张线稿获取 CDN URL
 - 对每张图调用 `analyze_image`，参数 `project_id="$PROJECT_ID"`, `image_url=CDN_URL`, `prompt="识别图中所有角色/实体的数量、类型（人物/动物/物体）、位置、构图复杂度。"`
 - 按角色数量 × 构图简洁度降序排列
-- 写入 `$DIR/input-manifest.md`
+- 写入 `output/input-manifest.md`
 
 ### 步骤 3：渐进式上色
 
@@ -100,7 +103,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="coloring", title="上色", d
 按 `input-manifest.md` 中的顺序逐张处理线稿：
 
 对每张线稿：
-1. Read 线稿获取 CDN URL → 调用 `analyze_image(project_id="$PROJECT_ID", image_url=CDN_URL, prompt=实体识别prompt)` → 识别所有实体；同时调用线稿指纹 prompt，把原始线稿的主体数量、位置、姿态、关键轮廓线、道具/背景线条写入 `$DIR/lineart-fingerprints.md`
+1. Read 线稿获取 CDN URL → 调用 `analyze_image(project_id="$PROJECT_ID", image_url=CDN_URL, prompt=实体识别prompt)` → 识别所有实体；同时调用线稿指纹 prompt，把原始线稿的主体数量、位置、姿态、关键轮廓线、道具/背景线条写入 `output/lineart-fingerprints.md`
 2. 实体匹配：与 Color Bible 已有实体比对
    - **已知实体**：读取颜色规格
    - **新实体**：按色彩理论纪律（性格/氛围匹配 + 跨实体区分度 + 与已有色和谐关系）定义颜色，加入 Color Bible
@@ -113,11 +116,11 @@ Call `update_task_progress(task_id=$TASK_ID, stage="coloring", title="上色", d
 5. 默认生成 1 个候选上色图；满足触发条件（用户明确要求质量优先 / 第一候选颜色明显失败但线稿尚可 / 跨图关键实体需更稳定版本）才生成 2 个候选。保存返回的 `file_path`（MCP 服务器端路径）
 6. 调用 `analyze_image` 评估候选颜色（逐实体逐部位比对 Color Bible）；2 候选时分别评估选颜色最优且线稿风险最低的；**做回归检查**：若某候选颜色更准但线稿比原线稿指纹退化更严重，拒收该候选
 7. 调用 `analyze_image` 验证线稿完整性；将上色图审计结果与线稿指纹逐项比对，不能确认时标记 `needs_img2img`
-8. 更新 per-entity best reference 映射表 `$DIR/best-refs.md`
+8. 更新 per-entity best reference 映射表 `output/best-refs.md`
 
 详细方法论以 `line-art-coloring` skill 为准。
 
-**产出**：`$DIR/color-bible.md`、`$DIR/best-refs.md`、`$DIR/colored_00.png` ... `$DIR/colored_NN.png`
+**产出**：`output/color-bible.md`、`output/best-refs.md`、`output/colored_00.png` ... `output/colored_NN.png`
 
 ### 步骤 4：全量一致性审计
 
@@ -125,7 +128,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="audit", title="审计", desc
 
 对每张已上色图调用 `analyze_image`，对 Color Bible 中每个跨图实体逐部位比对。
 
-生成 `$DIR/consistency-report.md`：双轨——每个实体每张图的每个部位标注颜色 PASS / MINOR / FAIL，并单独记录线稿保持风险（重绘/模糊/构图偏移/比例变化/元素增删）。
+生成 `output/consistency-report.md`：双轨——每个实体每张图的每个部位标注颜色 PASS / MINOR / FAIL，并单独记录线稿保持风险（重绘/模糊/构图偏移/比例变化/元素增删）。
 
 ### 步骤 5：收敛修正循环（最多 3 轮）
 
@@ -143,7 +146,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="correction", title="修正",
 
 **默认前向不回溯**。仅当任务明确要求严格跨图一致、且颜色一致性收益明确大于线稿重绘风险时才 opt-in 回溯：若某实体 best_ref 在修正中变化、且前面的图也含该实体，回溯重上这些图（仍以原线稿作单源 ref）。详细触发条件以 `line-art-coloring` skill Phase 4 为准。回溯同样带线稿回归守卫——回溯后线稿退化则放弃回溯、标 `needs_img2img`。
 
-### 步骤 7：归档报告
+### 步骤 7：交付报告
 
 Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", description="生成交付报告，汇总上色结果、一致性状态和保线风险")`。
 
@@ -151,13 +154,13 @@ Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", des
 - 模式：尽力保线的线稿上色
 - 使用的图像模型 provider（影响 ref 策略）
 - 总图数、颜色通过数（PASS/MINOR/FAIL）、修正轮次、人工复核数、`needs_img2img` 数
-- 成果目录 `$DIR`
+- 成果目录 `output`
 - Color Bible 最终版本摘要
 - 一致性报告摘要
 - **保线风险清单**：哪些图的线稿与原线稿有可见差异（重绘/偏移/比例变化/元素增删），需要像素级保真处已标 `needs_img2img`
 - 能力边界说明：当前使用 `generate_image` best-effort 参考图生成，**未使用专用 img2img/colorize_lineart**，因此结果不是像素级 100% 保线
 
-进度报告格式：`[N/M] step → $DIR/ (detail)`。
+进度报告格式：`[N/M] step → output/ (detail)`。
 
 最终报告完成后调用一次 `submit_agent_feedback(task_id=$TASK_ID, agent_name="designer", scores='{"quality":8,"completeness":8,"efficiency":8}', errors="", optimizations="<本次可改进项；无则空字符串>", summary="<图片总数、一致性状态、人工复核数量与保线风险摘要>")`。调用前按实际情况调整 JSON 字符串中的 1-10 分数；无错误时 `errors` 传空字符串。
 
@@ -193,13 +196,13 @@ Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", des
 
 ## 成功标准
 
-- [ ] 工作目录创建成功，`$DIR` 路径有效
+- [ ] `output/color-bible.md`、`output/colored_00.png` 与 `output/consistency-report.md` 等必需产物存在
 - [ ] SKILL.md 已读取，方法论已理解
 - [ ] 已读取 `image_model{provider}`，确定 provider-adaptive ref 策略
 - [ ] 所有线稿已通过 analyze_image 识别实体
 - [ ] Color Bible 包含所有实体颜色规格（含色彩理论纪律）
 - [ ] 原始线稿已下载注册到服务器并作 `ref_image_path`（单源）
-- [ ] 所有上色图文件存在：`$DIR/colored_00.png` ... `colored_NN.png`
+- [ ] 所有上色图文件存在：`output/colored_00.png` ... `colored_NN.png`
 - [ ] Per-entity best reference 映射表完整
 - [ ] 一致性审计报告已生成（双轨：颜色一致性 + 线稿保持风险）
 - [ ] 收敛修正循环完成（全部 PASS/MINOR 或达最大轮次），且已做回归检查
@@ -224,16 +227,16 @@ Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", des
 
 ### 文件组织
 
-- 当前运行使用任务工作目录 `$DIR`
-- 上色图命名：`$DIR/colored_00.png`（第一张，锚点）、`$DIR/colored_01.png` ... `$DIR/colored_NN.png`
-- 候选图命名：`$DIR/colored_NN_a.png`、`$DIR/colored_NN_b.png`（评估后保留最优，删除另一个）
-- 候选服务器路径写入 `$DIR/server-paths.md`；不能把 `download_image` 当作写入 `$DIR/colored_NN.png` 的本地归档步骤。需要本地归档时下载 `download_url` 到 `$DIR/colored_NN.png`
-- 颜色圣经：`$DIR/color-bible.md`（渐进式更新）
-- 实体映射：`$DIR/best-refs.md`
-- 输入清单：`$DIR/input-manifest.md`
-- 线稿指纹：`$DIR/lineart-fingerprints.md`
-- 一致性报告：`$DIR/consistency-report.md`
-- Prompt 记录：`$DIR/image-prompts.md`（每次调用的 prompt/provider/model/size/output_path/ref_image_path/revised_prompt）
+- 最终与恢复关键产物使用下列显式 `output/<filename>` 路径
+- 上色图命名：`output/colored_00.png`（第一张，锚点）、`output/colored_01.png` ... `output/colored_NN.png`
+- 候选图命名：`output/colored_NN_a.png`、`output/colored_NN_b.png`（评估后保留最优，删除另一个）
+- 候选服务器路径写入 `output/server-paths.md`；`download_image` 不会自动写入本地文件，需要时将 `download_url` 下载到显式路径 `output/colored_NN.png`
+- 颜色圣经：`output/color-bible.md`（渐进式更新）
+- 实体映射：`output/best-refs.md`
+- 输入清单：`output/input-manifest.md`
+- 线稿指纹：`output/lineart-fingerprints.md`
+- 一致性报告：`output/consistency-report.md`
+- Prompt 记录：`output/image-prompts.md`（每次调用的 prompt/provider/model/size/output_path/ref_image_path/revised_prompt）
 
 ### 任务追踪
 
@@ -241,7 +244,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", des
 - 每个任务对应一个流程步骤，设置依赖
 - 开始前：`TaskUpdate status → in_progress`
 - 完成后：`TaskUpdate status → completed`
-- 报告进度：`[2/7] 渐进上色完成 → $DIR/ (8张图，2轮修正)`
+- 报告进度：`[2/7] 渐进上色完成 → output/ (8张图，2轮修正)`
 
 ## 执行原则
 

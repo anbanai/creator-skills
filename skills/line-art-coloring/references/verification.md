@@ -61,11 +61,11 @@
 | FAIL | 色调错误 | Color Bible: "deep navy blue" → 观察: "appears black" 或 "appears royal blue" |
 
 4. 线稿完整性验证分两次单图分析：
-   - 原始线稿：调用 `analyze_image(project_id="$PROJECT_ID", image_url=原始线稿CDN_URL, prompt="只描述这张原始线稿的可验证线稿指纹，不评论颜色。包括：画面宽高方向、主体数量、主体位置、姿态、轮廓关键线（含线条粗细与曲率）、服装/道具/背景线条、构图边界、容易被重绘或丢失的小线条，以及线条整体锐利还是模糊。")` → 写入 `$DIR/lineart-fingerprints.md`
+   - 原始线稿：调用 `analyze_image(project_id="$PROJECT_ID", image_url=原始线稿CDN_URL, prompt="只描述这张原始线稿的可验证线稿指纹，不评论颜色。包括：画面宽高方向、主体数量、主体位置、姿态、轮廓关键线（含线条粗细与曲率）、服装/道具/背景线条、构图边界、容易被重绘或丢失的小线条，以及线条整体锐利还是模糊。")` → 写入 `output/lineart-fingerprints.md`
    - 上色图：调用 `analyze_image(project_id="$PROJECT_ID", file_path=上色图服务器端路径, prompt="只描述这张上色图的线条和构图状态，不评论颜色。按原始线稿指纹逐项检查：画面宽高方向、主体数量、主体位置、姿态、轮廓关键线（粗细/曲率是否一致）、服装/道具/背景线条、构图边界、小线条是否存在、线条锐度（是否变模糊或变锐化）。输出 PASS/MINOR/FAIL，并列出任何线条重绘、模糊、锐化变化、构图偏移、比例变化或元素增删。")`
    - 将上色图审计结果与线稿指纹逐项比对；不能确认时标记 `needs_img2img`
 
-**产出**：更新 `$DIR/best-refs.md` 中的质量评估。
+**产出**：更新 `output/best-refs.md` 中的质量评估。
 
 ### Level 2 — 跨图一致性审计（全部上完后）
 
@@ -73,14 +73,14 @@
 
 **步骤**：
 
-1. 对每个 `$DIR/colored_NN.png`：
+1. 对每个 `output/colored_NN.png`：
    - 调用 `analyze_image(project_id="$PROJECT_ID", file_path=服务器端路径, prompt="逐实体逐部位描述颜色，与以下 Color Bible 规格比对并标注 PASS/MINOR/FAIL：[Color Bible 内容]")`
 2. 对 Color Bible 中每个实体：
    - 列出该实体出现的所有图
    - 逐图逐部位比对
    - 生成一致性行
 
-**产出**：`$DIR/consistency-report.md`
+**产出**：`output/consistency-report.md`
 
 格式示例：
 
@@ -128,7 +128,7 @@ Details:
 
 ### 追踪表格式
 
-`$DIR/best-refs.md`：
+`output/best-refs.md`：
 
 ```markdown
 # Best Reference Tracking

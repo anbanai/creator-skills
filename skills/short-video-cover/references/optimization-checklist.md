@@ -83,17 +83,17 @@ analyze_image(
 
 ## 评级落地
 
-`analyze_image` 返回的文本直接作为 `$DIR/cover-review.md` 的正文，文件开头加：
+`analyze_image` 返回的文本直接作为 `output/cover-review.md` 的正文，文件开头加：
 
 ```markdown
 # Cover Review
 
 ## Audit Target
 
-- file: $DIR/cover.png
+- file: output/cover.png
 - analyzed_at: <时间戳>
 - cover_server_path: $COVER_SERVER_PATH
-- planned_against: $DIR/cover-plan.md
+- planned_against: output/cover-plan.md
 
 ---
 

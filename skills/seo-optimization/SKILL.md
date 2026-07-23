@@ -27,9 +27,9 @@ Use this Skill after the final article draft exists. SEO judgment, title variant
 
 Read these local artifacts first:
 
-1. `$DIR/04-article-final.md` if present; otherwise `$DIR/03-article.md`.
-2. `$DIR/context-brief.md` and `$DIR/01-research.md` for user intent, positioning, chosen topic, and historical differentiation.
-3. `$DIR/02-outline.md` for section logic and SEO seed keywords.
+1. `output/04-article-final.md` if present; otherwise `output/03-article.md`.
+2. `output/context-brief.md` and `output/01-research.md` for user intent, positioning, chosen topic, and historical differentiation.
+3. `output/02-outline.md` for section logic and SEO seed keywords.
 4. `get_project_profile(project_id, scope="article", task_id?)` only when project keywords, audience, or writer context is missing from local files.
 
 ## Configuration Boundaries
@@ -41,7 +41,7 @@ Read these local artifacts first:
 
 ## Output Contract
 
-Write `$DIR/seo-result.md` with:
+Write `output/seo-result.md` with:
 
 ```markdown
 ## SEO 优化方案
@@ -75,7 +75,7 @@ Write `$DIR/seo-result.md` with:
 3. Generate at least 3 title variants with different formulas: number, pain point, contrast, curiosity, benefit, or empathy.
 4. Score each variant from 0-2 on curiosity gap, emotional strength, specificity, compliance, core keyword front-loading, and 22-25 character fit.
 5. Select the highest compliant title. If no compliant variant wins, keep the safest title and explain why.
-6. Write the digest and keyword plan into `$DIR/seo-result.md`.
+6. Write the digest and keyword plan into `output/seo-result.md`.
 
 ## Failure Handling
 

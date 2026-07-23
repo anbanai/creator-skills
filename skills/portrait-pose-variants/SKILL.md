@@ -65,7 +65,7 @@ description: Use when generating multiple pose/expression variants from a single
 | 11 | 气质 | 甜美 / 御姐 / 文艺 / 元气 / 高冷 |
 | 12 | 神态特征 | 标志性表情倾向（如"嘴角总带一点笑意"） |
 
-12 维度从参考人像提取后写入 `$DIR/identity-lock.md`，每张变体生成后**逐维度比对**。
+12 维度从参考人像提取后写入 `output/identity-lock.md`，每张变体生成后**逐维度比对**。
 
 ### 原则 1：逐张生成、逐张审计
 
@@ -97,15 +97,13 @@ description: Use when generating multiple pose/expression variants from a single
 
 ### Phase 0 — 初始化
 
-#### 步骤 1：获取项目和工作目录
+托管运行时提供任务私有工作区和预先创建的 `output/`。最终与恢复关键产物只写入本文列出的 `output/<filename>` 路径；不创建、发现、移动或重命名 `output/`。
+
+#### 步骤 1：获取项目
 
 - `echo $ANBAN_DEFAULT_PROJECT` → `$PROJECT_ID`
 - 如果为空，调用 `list_projects`；只有一个可用项目时自动使用，多个项目且无法从任务上下文判断时停止并提示配置 `ANBAN_DEFAULT_PROJECT`
-- 从 `.task-context` 获取 `$TASK_ID`，或使用 CWD 目录名
-- 尝试调用 `prepare_workspace(content_type="short-video", task_id=$TASK_ID)` → `$DIR`
-  - prepare_workspace 返回的 path 可能是相对路径；相对路径以当前任务工作区 `$CWD` 为根
-  - 如果 `prepare_workspace` 调用失败，使用 `$CWD/output/` 作为 `$DIR`
-- `mkdir -p "$DIR"`
+- 从结构化运行时上下文读取 `$TASK_ID`
 
 #### 步骤 2：收集用户输入
 
@@ -118,7 +116,7 @@ description: Use when generating multiple pose/expression variants from a single
 | 生成张数 N | ❌ | 6 | 1 ≤ N ≤ 6；超出按 6 处理并提示 |
 | 是否逐张确认 | ❌ | false | true 时每张生成后停止等待用户确认；false 时全部生成后统一交付 |
 
-写入 `$DIR/input-manifest.md`：
+写入 `output/input-manifest.md`：
 
 ```markdown
 # Input Manifest
@@ -130,10 +128,10 @@ description: Use when generating multiple pose/expression variants from a single
 - variant_count: 6
 - confirm_per_image: false
 
-## Workspace
+## Runtime Context
 
 - $PROJECT_ID: <项目 ID>
-- $DIR: <工作目录>
+- output_root: output/
 - $TASK_ID: <任务 ID>
 ```
 
@@ -150,7 +148,7 @@ description: Use when generating multiple pose/expression variants from a single
 2. download_image(project_id="$PROJECT_ID", url=CDN_URL) → 返回 PORTRAIT_SERVER_PATH
 ```
 
-把 `PORTRAIT_SERVER_PATH` 记录到 `$DIR/server-paths.md`。
+把 `PORTRAIT_SERVER_PATH` 记录到 `output/server-paths.md`。
 
 **3b. 提取身份锁**：
 
@@ -168,7 +166,7 @@ analyze_image(
 
 **3c. 写入身份锁**：
 
-把 12 维度结构化描述写入 `$DIR/identity-lock.md`。这份文件是后续每张变体 prompt 的**身份部分**直接抄写来源，也是 Phase 4 审计的比对基准。
+把 12 维度结构化描述写入 `output/identity-lock.md`。这份文件是后续每张变体 prompt 的**身份部分**直接抄写来源，也是 Phase 4 审计的比对基准。
 
 ---
 
@@ -189,7 +187,7 @@ analyze_image(
 
 如果是自定义姿态（不在 6 模板内），用户须提供：表情描述 + 手势描述 + 整体情绪 + 适用封面类型。
 
-把选定的姿态列表写入 `$DIR/selected-poses.md`，包含每个姿态的：编号、表情、手势、情绪基调、prompt 段落。
+把选定的姿态列表写入 `output/selected-poses.md`，包含每个姿态的：编号、表情、手势、情绪基调、prompt 段落。
 
 ---
 
@@ -227,11 +225,11 @@ DOWNLOAD_URL_i = result_i.download_url
 VARIANT_SERVER_PATH_i = result_i.file_path
 ```
 
-**5c. 本地归档 + prompt 备份**：
+**5c. 本地文件 + prompt 备份**：
 
-- 下载 `DOWNLOAD_URL_i` 到 `$DIR/variant_0i.png`
-- 把实际 prompt、image_type、size、output_path、ref_image_path、provider、model、response_type、revised_prompt、output_mime 追加到 `$DIR/image-prompts.md`
-- 把 `VARIANT_SERVER_PATH_i` 追加到 `$DIR/server-paths.md`
+- 下载 `DOWNLOAD_URL_i` 到 `output/variant_0i.png`
+- 把实际 prompt、image_type、size、output_path、ref_image_path、provider、model、response_type、revised_prompt、output_mime 追加到 `output/image-prompts.md`
+- 把 `VARIANT_SERVER_PATH_i` 追加到 `output/server-paths.md`
 
 **5d. 逐张身份审计**：
 
@@ -273,17 +271,17 @@ analyze_image(
 
 #### 步骤 6：生成汇总报告
 
-步骤 5 的逐张审计结果汇总到 `$DIR/consistency-report.md`：
+步骤 5 的逐张审计结果汇总到 `output/consistency-report.md`：
 
 ```markdown
 # Consistency Report
 
 ## Identity Lock Source
 
-- file: $DIR/input-manifest.md 中的 reference_portrait
+- file: output/input-manifest.md 中的 reference_portrait
 - analyzed_at: <时间戳>
 - portrait_server_path: $PORTRAIT_SERVER_PATH
-- 12 维度身份锁: $DIR/identity-lock.md
+- 12 维度身份锁: output/identity-lock.md
 
 ## Per-Variant Audit
 
@@ -311,7 +309,7 @@ analyze_image(
 
 ---
 
-### Phase 5 — 归档报告
+### Phase 5 — 交付报告
 
 #### 步骤 7：最终交付
 
@@ -320,13 +318,13 @@ analyze_image(
 ```
 人像姿态变体生成完成
 
-参考人像: $DIR/input-manifest.md 记录的路径
+参考人像: output/input-manifest.md 记录的路径
 生成张数: N
 姿态列表: <从 selected-poses.md 提炼>
 
 成果文件:
-- $DIR/variant_01.png ~ variant_0N.png（主交付）
-- $DIR/variant_0N_v2.png（若重试过，作为备选）
+- output/variant_01.png ~ variant_0N.png（主交付）
+- output/variant_0N_v2.png（若重试过，作为备选）
 
 身份一致性:
 - 12 维度审计结果: <PASS/MINOR/FAIL 汇总>
@@ -334,10 +332,10 @@ analyze_image(
 - 能力边界: 当前使用 generate_image best-effort 参考图生成，未使用专用 ID-lock
 
 复盘材料:
-- $DIR/identity-lock.md （身份锁）
-- $DIR/selected-poses.md （姿态选择）
-- $DIR/image-prompts.md （prompt 备份）
-- $DIR/consistency-report.md （一致性审计）
+- output/identity-lock.md （身份锁）
+- output/selected-poses.md （姿态选择）
+- output/image-prompts.md （prompt 备份）
+- output/consistency-report.md （一致性审计）
 
 人工复核:
 - variant_0X.png: <描述仍存在的问题>，建议手动指定该维度后重新生成或使用专用 ID-lock 工具
@@ -438,18 +436,18 @@ Background and clothing may vary slightly but the person MUST be identical.
 
 ### 单张变体完成后
 
-- [ ] `$DIR/variant_0N.png` 实际下载到本地
-- [ ] `$DIR/image-prompts.md` 已追加该张的完整 prompt + provider 元数据
-- [ ] `$DIR/server-paths.md` 已记录 VARIANT_SERVER_PATH_N
+- [ ] `output/variant_0N.png` 实际下载到本地
+- [ ] `output/image-prompts.md` 已追加该张的完整 prompt + provider 元数据
+- [ ] `output/server-paths.md` 已记录 VARIANT_SERVER_PATH_N
 - [ ] 逐张身份审计已通过（关键维度 PASS 或重试后接受）
 - [ ] `confirm_per_image=true` 时已得到用户确认
 
 ### 全部完成后
 
 - [ ] N 张变体全部生成
-- [ ] `$DIR/identity-lock.md` 覆盖 12 个身份维度
-- [ ] `$DIR/selected-poses.md` 列出所有选定姿态
-- [ ] `$DIR/consistency-report.md` 汇总所有变体的 12 维度审计
+- [ ] `output/identity-lock.md` 覆盖 12 个身份维度
+- [ ] `output/selected-poses.md` 列出所有选定姿态
+- [ ] `output/consistency-report.md` 汇总所有变体的 12 维度审计
 - [ ] 关键维度 FAIL 已重试 1 次；重试后仍 FAIL 已标记 `needs_img2img`
 - [ ] 手势畸形的变体已重试 1 次；重试后仍畸形已标记 `needs_manual_edit`
 - [ ] 最终报告已交付，包含 N 张路径、身份锁摘要、审计汇总、能力边界声明

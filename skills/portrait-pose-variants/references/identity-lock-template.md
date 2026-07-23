@@ -110,14 +110,14 @@ analyze_image(
 
 ## 输出落地
 
-`analyze_image` 返回的文本直接作为 `$DIR/identity-lock.md` 的正文，文件开头加：
+`analyze_image` 返回的文本直接作为 `output/identity-lock.md` 的正文，文件开头加：
 
 ```markdown
 # Identity Lock
 
 ## Source
 
-- file: $DIR/input-manifest.md 中的 reference_portrait
+- file: output/input-manifest.md 中的 reference_portrait
 - analyzed_at: <时间戳>
 - portrait_server_path: $PORTRAIT_SERVER_PATH
 

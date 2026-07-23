@@ -152,11 +152,11 @@ analyze_image(
 
 ## 输出落地（逐张）
 
-每张变体的审计结果直接附加到 `$DIR/consistency-report.md` 的对应行（步骤 5d 时追加），或独立保存为 `$DIR/audit_variant_0N.md`（步骤 5d 内部使用）。
+每张变体的审计结果直接附加到 `output/consistency-report.md` 的对应行（步骤 5d 时追加），或独立保存为 `output/audit_variant_0N.md`（步骤 5d 内部使用）。
 
 ## 输出落地（全量汇总）
 
-步骤 6 把所有变体的审计结果汇总到 `$DIR/consistency-report.md`，格式见 SKILL.md 步骤 6 的模板。
+步骤 6 把所有变体的审计结果汇总到 `output/consistency-report.md`，格式见 SKILL.md 步骤 6 的模板。
 
 汇总表必须包含：
 - 每张变体的 12 维度评级

@@ -25,6 +25,7 @@ when that phase begins.
 | Skill | One domain capability, its input/output contract, decision rules, and supporting knowledge |
 | Hook | Deterministic lifecycle gates or a bounded decision based only on hook input |
 | MCP | Tool schema, validation, persistence, and server-side side effects |
+| Managed runtime | One task-private workspace per execution, structured `TASK_ID`, and the pre-created `output/` |
 | Artifact | File-backed state, evidence, failure details, and resume entrypoints across stages |
 
 Agents must use Claude Code MCP tools for Anban product capabilities. Do not
@@ -93,9 +94,10 @@ MCP owns tool schemas and server-side side effects. In particular:
 - `save_template` accepts its declared visual-template fields only. The server
   normalizes persisted fields and derives a deterministic fingerprint so
   repeated, resumed, or concurrent submissions are idempotent.
-- `prepare_workspace` returns the canonical task output path. Workflows keep
-  every artifact there; server `task_files`, `execution_id`, and OSS storage
-  own their persistence and version boundaries.
+- The managed runtime creates the task-private workspace and `output/` before
+  an Agent starts and supplies `TASK_ID` through structured runtime context.
+  Agents and Skills write explicit `output/<filename>` artifacts and never
+  create, discover, move, or rename the output directory.
 
 Live slicing keeps planning and completion side effects in MCP: use
 `build_live_clip_plan` for segment-based clip plans,
@@ -106,7 +108,8 @@ record subject completion. The Agent owns local `ffmpeg` execution and
 file-backed evidence around those tool calls.
 
 Task artifacts are the resume contract. Store generated content, manifests,
-quality evidence, and structured `failure-state.json` files in the workspace.
+quality evidence, and structured `output/failure-state.json` files at their
+declared `output/<filename>` paths.
 Do not place transient logs, large payloads, or secrets in project memory.
 
 ## Hook lifecycle
@@ -141,11 +144,11 @@ a recoverable failure and resumes from `title_finalization`; it does not deliver
 visuals produced for a different title.
 
 The Agent validates content, visual verification evidence, manifests, and all
-planned files directly in `$DIR`. It never moves, copies, or title-renames that
-directory before completion. A recovered `failure-state.json` is removed only
-after delivery validation passes and immediately before reporting success.
-Template saving reads `$DIR/viral-template.json` and `$DIR/template-meta.json`
-after delivery validation; final summaries report `$DIR`.
+planned files at their explicit `output/<filename>` paths. A recovered
+`output/failure-state.json` is removed only after delivery validation passes
+and immediately before reporting success.
+Template saving reads `output/viral-template.json` and `output/template-meta.json`
+after delivery validation; final summaries report `output/`.
 
 ## Content and runtime conventions
 

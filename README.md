@@ -51,7 +51,9 @@ claude plugin marketplace add ./plugins
 claude plugin install --scope user anban@anbanai
 ```
 
-`plugin@marketplace` 中的 `anban` 是插件 ID，`anbanai` 是发布方/市场源。插件内的 MCP server key 固定为 `creator`；Agent 与 Skill 文档只使用裸 MCP 工具名（例如 `generate_image`、`prepare_workspace`），具体工具名前缀由 Claude Code 运行时处理。Agent 命名空间使用 `anban:<agent>`。
+`plugin@marketplace` 中的 `anban` 是插件 ID，`anbanai` 是发布方/市场源。插件内的 MCP server key 固定为 `creator`；Agent 与 Skill 文档只使用裸 MCP 工具名（例如 `generate_image`），具体工具名前缀由 Claude Code 运行时处理。Agent 命名空间使用 `anban:<agent>`。
+
+托管执行时，运行时为每次执行提供任务私有工作区、预先创建的 `output/`，并通过结构化运行时上下文提供 `TASK_ID`。Agent 与 Skill 只写入明确列出的 `output/<filename>`；不创建、发现、移动或重命名输出目录。
 
 安装完成后，可以用 `/plugin` 或插件列表确认插件已经启用。
 
@@ -117,7 +119,7 @@ claude --verbose --agent anban:seednote 降噪耳机种草笔记
 claude --verbose --agent anban:live-slicer ./live.mp4
 ```
 
-如果你调整 Claude Code 权限模式，请只在受信任工作区中放宽权限，并确认本地媒体文件与输出目录都可被 agent 访问。
+如果你调整 Claude Code 权限模式，请只在受信任工作区中放宽权限，并确认任务输入媒体可被 agent 访问。
 
 ## 常用命令
 

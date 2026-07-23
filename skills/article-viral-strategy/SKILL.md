@@ -68,7 +68,7 @@ description: 'Use when 微信公众号爆款互动引擎——为文章注入完
 
 ## 接入契约（agent 在 4 个决策点调用本 skill）
 
-本 skill 不独立产出文章，它在 `article` 流水线的四个环节被调用。每个环节产出**可追溯的决策记录**（写入对应 `$DIR/*.md`），不向用户提问。
+本 skill 不独立产出文章，它在 `article` 流水线的四个环节被调用。每个环节产出**可追溯的决策记录**（写入对应 `output/*.md`），不向用户提问。
 
 ### 环节 1：选题爆款策略锚定（步骤 2，选题已选定**之后**）
 
@@ -109,7 +109,7 @@ description: 'Use when 微信公众号爆款互动引擎——为文章注入完
 
 ### 环节 4：发布前爆款审计（步骤 9，硬闸门）
 
-对成品（`04-article-final.md` + `seo-result.md` + 封面）按 **7 维** 打分，产出 `$DIR/viral-audit.md`：
+对成品（`04-article-final.md` + `seo-result.md` + 封面）按 **7 维** 打分，产出 `output/viral-audit.md`：
 
 1. 选题社交货币
 2. 标题 CTR

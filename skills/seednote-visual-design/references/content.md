@@ -67,7 +67,7 @@
 
 ## 图片内容规划（image-plan.md）
 
-基于选题方向、最终标题和目标受众，在生成图片前先独立规划每张图的具体内容，写入 `$DIR/image-plan.md`。
+基于选题方向、最终标题和目标受众，在生成图片前先独立规划每张图的具体内容，写入 `output/image-plan.md`。
 
 **图片总数**：1~5 张，由 `seednote_image_mode` 决定：`cover_only` 仅封面，`cover_content` 为封面 + 内容图，`cover_tail` 为封面 + 尾图，`full` 为封面 + 内容图 + 尾图。封面始终生成；内容图仅在 `cover_content` / `full` 模式生成，张数按信息点分组自适应（最多 3 张）；尾图仅在 `cover_tail` / `full` 模式生成，不含尾图的模式 `image-plan.md` 不含 `## tail` 节。所有图片逐张调用 `generate_image` 生成。
 
@@ -165,7 +165,7 @@
 
 按 `image-plan.md` 逐张调用 `generate_image`：
 - 每张使用对应 section 的信息点填充 `{page_content}` 和 `{page_type}`
-- `output_path` 设为 `$DIR/image_01.png`、`$DIR/image_02.png` ... `$DIR/image_03.png`
+- `output_path` 设为 `output/image_01.png`、`output/image_02.png` ... `output/image_03.png`
 - `ref_image_paths` 只包含 `image-plan.md` 为当前页选中的原始路径，顺序与 prompt 的参考图编号一致；当前页没有相关参考时省略该字段并使用纯文生图
 - 每张使用独立视觉主体、场景、构图和参考子集，禁止与其他内容图机械复用
 尾图单独生成见 tail.md（仅当 `seednote_image_mode` 包含尾图时）。

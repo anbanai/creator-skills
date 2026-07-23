@@ -45,7 +45,7 @@ description: 'Use when 电商产品图分析——从多张产品图抽取电商
 
 ### 步骤 1：准备产品图清单
 
-把 `$PRODUCT_PHOTOS`（来自 `$DIR/.anban-creator/products/index.json`，见主流程「产品图发现」）写入 `$DIR/product-photos.md`，逐张标注序号、来源路径、可见性（是否可访问/是否需压缩）。任一不可访问剔除并记录，**至少保留 1 张**；全不可访问则报错停止。
+把 `$PRODUCT_PHOTOS`（来自 `$PRODUCT_PHOTO_DIR/index.json`，见主流程「产品图发现」）写入 `output/product-photos.md`，逐张标注序号、来源路径、可见性（是否可访问/是否需压缩）。任一不可访问剔除并记录，**至少保留 1 张**；全不可访问则报错停止。
 
 ### 步骤 2：逐张抽取产品属性
 
@@ -79,7 +79,7 @@ description: 'Use when 电商产品图分析——从多张产品图抽取电商
 
 ### 步骤 3：汇总成产品档案
 
-把多张图的抽取结果合并去重，冲突项**以最清晰、打光最好、最代表商品的那张为准**并标注来源图序号。产出 `$DIR/product-bible.md`，结构：
+把多张图的抽取结果合并去重，冲突项**以最清晰、打光最好、最代表商品的那张为准**并标注来源图序号。产出 `output/product-bible.md`，结构：
 
 ```markdown
 # 产品档案 Product Bible
@@ -95,7 +95,7 @@ description: 'Use when 电商产品图分析——从多张产品图抽取电商
 
 | 序号 | subject 部位标签 | server-local 路径 | 该图可见产品信息（色泽/形态/包装文字/材质） |
 |------|------------------|-------------------|----------------------------------------------|
-| 1    | 包装正面         | `$DIR/.anban-creator/products/product_01.png` | 品牌文字「XX」/ 主色 #XXX / 哑光金盒 |
+| 1    | 包装正面         | `$PRODUCT_PHOTO_DIR/product_01.png` | 品牌文字「XX」/ 主色 #XXX / 哑光金盒 |
 | 2    | 茶汤             | `.../product_02.png` | 汤色橙黄透亮 / 玻璃公道杯 |
 | 3    | 干茶             | `.../product_03.png` | 条索紧结 / 墨绿润 |
 | 4    | 叶底             | `.../product_04.png` | 红边显露 / 柔软亮 |
@@ -159,8 +159,8 @@ description: 'Use when 电商产品图分析——从多张产品图抽取电商
 
 ## 产出
 
-- `$DIR/product-bible.md`（锁定规格，含**「产品图清单」**：序号 | subject 部位标签 | server-local 路径 | 该图可见产品信息）
-- `$DIR/product-photos.md`（产品图访问性清单与可见性）
+- `output/product-bible.md`（锁定规格，含**「产品图清单」**：序号 | subject 部位标签 | server-local 路径 | 该图可见产品信息）
+- `output/product-photos.md`（产品图访问性清单与可见性）
 - `$ANCHOR_REF`（最佳锚点 server-local 路径，写入档案与内部变量）
 
 > 「产品图清单」的 subject 标签 + 稳定序号是 `ecommerce-visual-design`「按需选参考图 + 点名保真」的查表依据——没有它，生成时无法知道「哪张是茶汤、哪张是叶底」，也无法在 prompt 里精确点名「与第 N 张完全一致」。

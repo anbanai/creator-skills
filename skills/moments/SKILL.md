@@ -24,11 +24,11 @@ description: Use when generating WeChat Moments / 朋友圈 content packages fro
 
 ## 固定产物
 
-在当前 `$DIR` 下生成三个必需文件：
+生成三个必需文件：
 
-1. `material-analysis.md`：素材分类与四层抽取。
-2. `content.md`：朋友圈正文、备选开头/结尾、发布建议。
-3. `quality-review.md`：真实感、诱导互动、空泛营销、证据不足检查。
+1. `output/material-analysis.md`：素材分类与四层抽取。
+2. `output/content.md`：朋友圈正文、备选开头/结尾、发布建议。
+3. `output/quality-review.md`：真实感、诱导互动、空泛营销、证据不足检查。
 
 ## 输入理解
 

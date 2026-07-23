@@ -23,24 +23,24 @@ Use this skill to convert a local livestream video into transcript-backed short-
 
 ## Default Artifacts
 
-Use one output directory per source video:
+The managed runtime provides a task-private workspace and a pre-created `output/` directory. `TASK_ID` comes from structured runtime context. Use the explicit paths below; do not create, discover, move, or rename `output/` or its parent directories.
 
 | File | Purpose |
 | --- | --- |
-| `metadata.json` | `ffprobe` metadata |
-| `cover.jpg` | first-frame global cover (fallback) |
-| `cover-NN.jpg` | per-clip smart keyframe cover (scene-change) |
-| `decision-log.md` | auto-decision log (orientation, fill, loudnorm, padding) |
-| `audio.mp3` | extracted audio for TingWu |
-| `analysis.json` | normalized TingWu result |
-| `invalid-sentences.json` | unusable sentence indexes |
-| `segments.json` | slicing plan |
-| `clip-plan.json` | deterministic clip timings and ffmpeg commands |
-| `subject-clip-plan.json` | deterministic topic-script clip parts and concat commands |
-| `clip_results.json` | local ffmpeg execution results |
-| `clip-manifest.json` | JSON array of delivered clips |
-| `clip-draft-results.json` | CapCut draft creation results (optional) |
-| `exports/` | cut videos and text exports |
+| `output/metadata.json` | `ffprobe` metadata |
+| `output/cover.jpg` | first-frame global cover (fallback) |
+| `output/cover-NN.jpg` | per-clip smart keyframe cover (scene-change) |
+| `output/decision-log.md` | auto-decision log (orientation, fill, loudnorm, padding) |
+| `output/audio.mp3` | extracted audio for TingWu |
+| `output/analysis.json` | normalized TingWu result |
+| `output/invalid-sentences.json` | unusable sentence indexes |
+| `output/segments.json` | slicing plan |
+| `output/clip-plan.json` | deterministic clip timings and ffmpeg commands |
+| `output/subject-clip-plan.json` | deterministic topic-script clip parts and concat commands |
+| `output/clip_results.json` | local ffmpeg execution results |
+| `output/clip-manifest.json` | JSON array of delivered clips |
+| `output/clip-draft-results.json` | CapCut draft creation results (optional) |
+| MCP-planned `output/exports/...` paths | cut videos and text exports |
 
 ## Workflow
 
@@ -49,52 +49,51 @@ Use one output directory per source video:
 
    If either command is missing, tell the operator to install FFmpeg. Python is not required.
 
-2. Prepare artifacts:
+2. Prepare media artifacts:
 
    ```bash
-   mkdir -p "$DIR" "$DIR/exports"
-   ffprobe -v error -show_format -show_streams -of json "$VIDEO" > "$DIR/metadata.json"
-   ffmpeg -y -i "$VIDEO" -vn -ac 1 -ar 16000 -codec:a libmp3lame -q:a 4 "$DIR/audio.mp3"
-   ffmpeg -y -ss 0 -i "$VIDEO" -frames:v 1 -q:v 2 "$DIR/cover.jpg"
+   ffprobe -v error -show_format -show_streams -of json "$VIDEO" > "output/metadata.json"
+   ffmpeg -y -i "$VIDEO" -vn -ac 1 -ar 16000 -codec:a libmp3lame -q:a 4 "output/audio.mp3"
+   ffmpeg -y -ss 0 -i "$VIDEO" -frames:v 1 -q:v 2 "output/cover.jpg"
    ```
 
 3. Upload audio:
    Call `get_media_pipeline_status` first. TingWu is the required transcription backend; if `oss_direct_upload` or `tingwu_configured` is false, stop and report the missing items.
-   Call `prepare_file_upload` with `purpose="live_audio"`, `filename="audio.mp3"`, and `content_type="audio/mpeg"`. Upload `$DIR/audio.mp3` to the returned `upload_url` with `curl --fail -X PUT -H "Content-Type: audio/mpeg" --upload-file "$DIR/audio.mp3" "$UPLOAD_URL"`.
+   Call `prepare_file_upload` with `purpose="live_audio"`, `filename="audio.mp3"`, and `content_type="audio/mpeg"`. Upload `output/audio.mp3` to the returned `upload_url` with `curl --fail -X PUT -H "Content-Type: audio/mpeg" --upload-file "output/audio.mp3" "$UPLOAD_URL"`.
 
 4. Create TingWu task:
    Call `create_live_analysis_task(audio_key=..., auto_chapters_enabled=true, summarization_enabled=true, meeting_assistance_enabled=true, diarization_enabled=false, script_template_enable=true)`.
 
 5. Poll analysis:
-   Call `query_live_analysis_task(task_id=...)` until `status` is `COMPLETED`, then save the JSON to `analysis.json`.
+   Call `query_live_analysis_task(task_id=...)` until `status` is `COMPLETED`, then save the JSON to `output/analysis.json`.
 
 6. Plan cleanup and cuts:
-   - Call `recognize_live_invalid_sentences(sentences=analysis.sentences)` and save `invalid-sentences.json`.
+   - Call `recognize_live_invalid_sentences(sentences=analysis.sentences)` and save `output/invalid-sentences.json`.
    - Remove invalid indexes from `analysis.sentences`.
-   - Call `recognize_live_segments(sentences=valid_sentences, ask=optional_user_goal)` and save `segments.json`.
+   - Call `recognize_live_segments(sentences=valid_sentences, ask=optional_user_goal)` and save `output/segments.json`.
    - Detect source orientation with `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$VIDEO"` (store `$SRC_W`/`$SRC_H`; `$SRC_W > $SRC_H` is landscape).
-   - Call `build_live_clip_plan(sentences=analysis.sentences, segments=segments.segments, invalid=invalid.invalid, video_path="$VIDEO", output_dir="$DIR", target_mode="vertical", vertical_fill="blur", source_width=$SRC_W, source_height=$SRC_H, target_width=1080, target_height=1920, normalize_audio_loudness=true, head_padding_seconds=0.15, tail_padding_seconds=0.30, min_duration_seconds=5, max_duration_seconds=120)` and save `clip-plan.json`.
-   - Use `recognize_live_subjects` and `complete_live_subject` when the user wants topic-driven clips instead of broad segments, then call `build_live_subject_clip_plan(sentences=analysis.sentences, completions=subject_completions, invalid=invalid.invalid, video_path="$VIDEO", output_dir="$DIR", target_mode="vertical", vertical_fill="blur", source_width=$SRC_W, source_height=$SRC_H, target_width=1080, target_height=1920, normalize_audio_loudness=true, head_padding_seconds=0.15, tail_padding_seconds=0.30, min_duration_seconds=5, max_duration_seconds=120)` and save `subject-clip-plan.json`.
+   - Call `build_live_clip_plan(sentences=analysis.sentences, segments=segments.segments, invalid=invalid.invalid, video_path="$VIDEO", output_dir="output", target_mode="vertical", vertical_fill="blur", source_width=$SRC_W, source_height=$SRC_H, target_width=1080, target_height=1920, normalize_audio_loudness=true, head_padding_seconds=0.15, tail_padding_seconds=0.30, min_duration_seconds=5, max_duration_seconds=120)` and save `output/clip-plan.json`.
+   - Use `recognize_live_subjects` and `complete_live_subject` when the user wants topic-driven clips instead of broad segments, then call `build_live_subject_clip_plan(sentences=analysis.sentences, completions=subject_completions, invalid=invalid.invalid, video_path="$VIDEO", output_dir="output", target_mode="vertical", vertical_fill="blur", source_width=$SRC_W, source_height=$SRC_H, target_width=1080, target_height=1920, normalize_audio_loudness=true, head_padding_seconds=0.15, tail_padding_seconds=0.30, min_duration_seconds=5, max_duration_seconds=120)` and save `output/subject-clip-plan.json`.
    - Never hand-convert non-contiguous subject scripts into `segments.json`; use `build_live_subject_clip_plan`.
 
 7. Cut clips:
-   Read each item in the selected plan (`clip-plan.json` or `subject-clip-plan.json`). Before each command, create parent directories for planned `output`, `parts[].output`, and `concat_list_path`. For single-part clips, run `fast_cut_shell` first, then use `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$OUT"` to read output duration. If the command fails, the output is missing or empty, `ffprobe` fails, or actual duration differs from planned duration by more than `max(1.0s, duration*0.05)`, run `accurate_cut_shell` and read duration again. For multi-part clips, run every `parts[].accurate_cut_shell`, write `concat_list_content` to `concat_list_path`, run `concat_shell`, then read the final duration. Save one execution result per clip to `clip_results.json` with `actual_duration_seconds`; include `part_results` only for multi-part clips. When `fast_cut_shell` is empty (the tool set `method="encode"` because the source is landscape and must be verticalized with a filter), skip straight to `accurate_cut_shell` — the vertical blur/scale filter requires re-encoding and `-c copy` is invalid. The tool-generated `accurate_cut_args` already include `-pix_fmt yuv420p`, `-crf 20`, `-movflags +faststart`, the vertical `-vf` filter, and `-af loudnorm`.
+   Read each item in the selected plan (`output/clip-plan.json` or `output/subject-clip-plan.json`). Use the planned `output`, `parts[].output`, and `concat_list_path` exactly as returned; do not create or manage parent directories. If a planned path is not writable, record a runtime-contract failure for that clip. For single-part clips, run `fast_cut_shell` first, then use `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$OUT"` to read output duration. If the command fails, the output is missing or empty, `ffprobe` fails, or actual duration differs from planned duration by more than `max(1.0s, duration*0.05)`, run `accurate_cut_shell` and read duration again. For multi-part clips, run every `parts[].accurate_cut_shell`, write `concat_list_content` to `concat_list_path`, run `concat_shell`, then read the final duration. Save one execution result per clip to `output/clip_results.json` with `actual_duration_seconds`; include `part_results` only for multi-part clips. When `fast_cut_shell` is empty (the tool set `method="encode"` because the source is landscape and must be verticalized with a filter), skip straight to `accurate_cut_shell` — the vertical blur/scale filter requires re-encoding and `-c copy` is invalid. The tool-generated `accurate_cut_args` already include `-pix_fmt yuv420p`, `-crf 20`, `-movflags +faststart`, the vertical `-vf` filter, and `-af loudnorm`.
 
 8. Build delivery files:
    Call `build_live_clip_manifest(source_video="$VIDEO", tingwu_task_id="$TINGWU_TASK_ID", analysis_title=analysis.title, sentences=analysis.sentences, invalid=invalid.invalid, warnings=plan.warnings, rejected=plan.rejected, clips=plan.clips, clip_results=clip_results)` and write:
-   - `clip_manifest` to `clip-manifest.json` as a JSON array with each clip transcript.
-   - `transcript_markdown` to `transcript.md`.
-   - `summary_markdown` to `summary.md`.
+   - `clip_manifest` to `output/clip-manifest.json` as a JSON array with each clip transcript.
+   - `transcript_markdown` to `output/transcript.md`.
+   - `summary_markdown` to `output/summary.md`.
    - `clip_notes_markdown[].markdown` to `clip_notes_markdown[].markdown_path`.
 
 9. Export to CapCut (optional):
    For each successful clip in `clip_results.json`, create a CapCut/JianYing draft using the `capcut-draft` skill. Each clip becomes its own draft with:
    - Video segment: the clip's MP4 file (`type: "video"`). The exported MP4 is already 1080×1920, so place it at `scale=1.0` (no hard upscale).
    - Subtitles: from the clip's `transcript` array, applying the **Short-Video Captions** style from the `capcut-draft` skill (font_size≈10, `bold_width=0.1` for weight, white with `#FFD60A` for selling points/numbers, 0.12 black stroke, 0.8 shadow, `transform.y=-0.78` lower-third, `<size=10.0>...</size>` content — do NOT use `<b>` tags, they render literally). Split sentences >8 chars into ≤2 chunks at natural pauses, each its own text segment; time offsets are relative to the clip's start (`subtitle_start = (chunk.start - clip.start) × 1,000,000` microseconds).
-   - Cover: the clip's smart keyframe `cover-NN.jpg` (see Smart Cover below), falling back to `$DIR/cover.jpg`.
+   - Cover: the clip's smart keyframe `cover-NN.jpg` (see Smart Cover below), falling back to `output/cover.jpg`.
    - Canvas: vertical 9:16 (1080×1920) for short videos
    - No effects, transitions, or background music added automatically (audio is already loudness-normalized)
-   Save results to `clip-draft-results.json`. Skip this step entirely if CapCut draft root directory is not found.
+   Save results to `output/clip-draft-results.json`. Skip this step entirely if CapCut draft root directory is not found.
 
 ## Cutting Commands
 
@@ -117,7 +116,7 @@ Single clip example:
 ```bash
 START="12.300"
 DURATION="38.700"
-OUT="$DIR/exports/01-product-proof.mp4"
+OUT="output/exports/01-product-proof.mp4"
 ffmpeg -y -ss "$START" -i "$VIDEO" -t "$DURATION" -c copy "$OUT"
 ```
 
@@ -145,8 +144,8 @@ ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:no
 
 ```bash
 PIVOT=$(awk 'BEGIN{printf "%.2f", '"$CLIP_START"' + '"$CLIP_DURATION"' * 0.4}')
-ffmpeg -y -ss "$PIVOT" -i "$CLIP_PATH" -vf "select=gt(scene\,0.3)" -frames:v 1 -q:v 2 "$DIR/cover-NN.jpg" || \
-  ffmpeg -y -ss "$(awk 'BEGIN{printf "%.2f", '"$CLIP_DURATION"' / 2}')" -i "$CLIP_PATH" -frames:v 1 -q:v 2 "$DIR/cover-NN.jpg"
+ffmpeg -y -ss "$PIVOT" -i "$CLIP_PATH" -vf "select=gt(scene\,0.3)" -frames:v 1 -q:v 2 "output/cover-NN.jpg" || \
+  ffmpeg -y -ss "$(awk 'BEGIN{printf "%.2f", '"$CLIP_DURATION"' / 2}')" -i "$CLIP_PATH" -frames:v 1 -q:v 2 "output/cover-NN.jpg"
 ```
 
 `NN` is the two-digit clip index. Use `cover-NN.jpg` as that clip's CapCut draft cover; fall back to `cover.jpg` if generation fails.

@@ -70,15 +70,13 @@ description: 'Use when replicating viral short-video covers, generating a short-
 
 ### Phase 0 — 初始化
 
-#### 步骤 1：获取项目和工作目录
+托管运行时提供任务私有工作区和预先创建的 `output/`。最终与恢复关键产物只写入本文列出的 `output/<filename>` 路径；不创建、发现、移动或重命名 `output/`。
+
+#### 步骤 1：获取项目
 
 - `echo $ANBAN_DEFAULT_PROJECT` → `$PROJECT_ID`
 - 如果为空，调用 `list_projects` 获取项目列表；只有一个可用项目时自动使用，多个项目且无法从任务上下文判断时停止并提示配置 `ANBAN_DEFAULT_PROJECT`
-- 从 `.task-context` 获取 `$TASK_ID`，或使用 CWD 目录名
-- 尝试调用 `prepare_workspace(content_type="short-video", task_id=$TASK_ID)` → `$DIR`
-  - prepare_workspace 返回的 path 可能是相对路径；相对路径以当前任务工作区 `$CWD` 为根，例如返回 `output` 时使用 `$CWD/output`
-  - 如果 `prepare_workspace` 调用失败，使用 `$CWD/output/` 作为 `$DIR`
-- `mkdir -p "$DIR"`
+- 从结构化运行时上下文读取 `$TASK_ID`
 
 #### 步骤 2：收集用户输入
 
@@ -93,7 +91,7 @@ description: 'Use when replicating viral short-video covers, generating a short-
 | 是否有人像 | ❌ | 自动判断 | 若参考封面有人像，新封面也建议保留人像位置逻辑 |
 | 参考深度 | ❌ | `light` | `light`（只学色彩和层级）或 `deep`（参考构图和主体位置）|
 
-写入 `$DIR/input-manifest.md`：
+写入 `output/input-manifest.md`：
 
 ```markdown
 # Input Manifest
@@ -107,10 +105,10 @@ description: 'Use when replicating viral short-video covers, generating a short-
 - has_person: true
 - reference_depth: light
 
-## Workspace
+## Runtime Context
 
 - $PROJECT_ID: <项目 ID>
-- $DIR: <工作目录>
+- output_root: output/
 - $TASK_ID: <任务 ID>
 ```
 
@@ -129,7 +127,7 @@ description: 'Use when replicating viral short-video covers, generating a short-
 2. download_image(project_id="$PROJECT_ID", url=CDN_URL) → 返回 REF_SERVER_PATH
 ```
 
-把 `REF_SERVER_PATH` 记录到 `$DIR/server-paths.md`。
+把 `REF_SERVER_PATH` 记录到 `output/server-paths.md`。
 
 **3b. 视觉分析**：
 
@@ -147,7 +145,7 @@ analyze_image(
 
 **3c. 写入分析结果**：
 
-把 analyze_image 返回的 8 维度结构化描述写入 `$DIR/reference-analysis.md`，包含：画面比例、标题位置与层级、人物/主体位置、背景氛围、主色与强调色、字体气质、视觉重点、构图技巧。
+把 analyze_image 返回的 8 维度结构化描述写入 `output/reference-analysis.md`，包含：画面比例、标题位置与层级、人物/主体位置、背景氛围、主色与强调色、字体气质、视觉重点、构图技巧。
 
 ---
 
@@ -172,7 +170,7 @@ analyze_image(
    - 装饰性元素：可保留以保持视觉密度
    - 语义性元素（具体产品/Logo）：必须替换
 
-写入 `$DIR/cover-plan.md`：
+写入 `output/cover-plan.md`：
 
 ```markdown
 # Cover Plan
@@ -227,11 +225,11 @@ DOWNLOAD_URL = result.download_url
 COVER_SERVER_PATH = result.file_path
 ```
 
-**5c. 本地归档 + prompt 备份**：
+**5c. 本地文件 + prompt 备份**：
 
-- 下载 `DOWNLOAD_URL` 到 `$DIR/cover.png`（始终为可 HTTP fetch 的存储 URL，直接用 curl/wget 下载）
-- 把实际 prompt、image_type、size、output_path、ref_image_path、provider、model、response_type、revised_prompt、output_mime 全部追加到 `$DIR/cover-prompts.md`，便于复盘 504、构图偏移和颜色问题
-- 把 `COVER_SERVER_PATH` 记录到 `$DIR/server-paths.md`
+- 下载 `DOWNLOAD_URL` 到 `output/cover.png`（始终为可 HTTP fetch 的存储 URL，直接用 curl/wget 下载）
+- 把实际 prompt、image_type、size、output_path、ref_image_path、provider、model、response_type、revised_prompt、output_mime 全部追加到 `output/cover-prompts.md`，便于复盘 504、构图偏移和颜色问题
+- 把 `COVER_SERVER_PATH` 记录到 `output/server-paths.md`
 
 ---
 
@@ -257,7 +255,7 @@ analyze_image(
 4. 颜色是否统一（主色和强调色和谐，无杂色）
 5. 元素是否过多（画面是否杂乱，视觉重点是否被稀释）
 
-写入 `$DIR/cover-review.md`，每项打分 PASS/MINOR/FAIL 并附分析依据。
+写入 `output/cover-review.md`，每项打分 PASS/MINOR/FAIL 并附分析依据。
 
 **6b. 必要时重试**：
 
@@ -270,7 +268,7 @@ analyze_image(
 
 ---
 
-### Phase 5 — 归档报告
+### Phase 5 — 交付报告
 
 #### 步骤 7：最终报告
 
@@ -279,7 +277,7 @@ analyze_image(
 ```
 短视频封面复刻完成
 
-参考封面: $DIR/input-manifest.md 记录的路径
+参考封面: output/input-manifest.md 记录的路径
 新标题: <用户的新标题>
 参考深度: light / deep
 
@@ -288,18 +286,18 @@ analyze_image(
 - 实际迁移决策: <从 cover-plan.md 提炼的关键改动>
 
 成果文件:
-- $DIR/cover.png （主交付）
-- $DIR/cover_v2.png （若重试过，作为备选）
+- output/cover.png （主交付）
+- output/cover_v2.png （若重试过，作为备选）
 
 审计结论:
 - 5 项审计结果: <PASS/MINOR/FAIL 汇总>
 - 能力边界: 当前 generate_image 不保证中文文字精确渲染；若封面文字不清晰建议 PS 二次加工
 
 复盘材料:
-- $DIR/reference-analysis.md （参考封面拆解）
-- $DIR/cover-plan.md （迁移决策）
-- $DIR/cover-prompts.md （prompt 备份）
-- $DIR/cover-review.md （质量审计）
+- output/reference-analysis.md （参考封面拆解）
+- output/cover-plan.md （迁移决策）
+- output/cover-prompts.md （prompt 备份）
+- output/cover-review.md （质量审计）
 ```
 
 ---
@@ -362,13 +360,13 @@ DO NOT include:
 
 ### 单张封面完成后
 
-- [ ] `$DIR/input-manifest.md` 已生成，包含全部 6 个用户输入字段
-- [ ] `$DIR/server-paths.md` 已记录 REF_SERVER_PATH（和 COVER_SERVER_PATH）
-- [ ] `$DIR/reference-analysis.md` 已生成，覆盖 8 个分析维度
-- [ ] `$DIR/cover-plan.md` 已生成，包含迁移决策和 style anchors
-- [ ] `$DIR/cover.png` 实际下载到本地
-- [ ] `$DIR/cover-prompts.md` 已备份完整 prompt + provider 元数据
-- [ ] `$DIR/cover-review.md` 已生成，5 项审计 PASS/MINOR/FAIL 评级
+- [ ] `output/input-manifest.md` 已生成，包含全部 6 个用户输入字段
+- [ ] `output/server-paths.md` 已记录 REF_SERVER_PATH（和 COVER_SERVER_PATH）
+- [ ] `output/reference-analysis.md` 已生成，覆盖 8 个分析维度
+- [ ] `output/cover-plan.md` 已生成，包含迁移决策和 style anchors
+- [ ] `output/cover.png` 实际下载到本地
+- [ ] `output/cover-prompts.md` 已备份完整 prompt + provider 元数据
+- [ ] `output/cover-review.md` 已生成，5 项审计 PASS/MINOR/FAIL 评级
 
 ### 全部完成后
 

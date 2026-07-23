@@ -17,7 +17,7 @@
 
 > 配合 [SKILL.md](../SKILL.md) 使用。环节 4（发布前爆款审计）的方法论详解。
 
-成品（`04-article-final.md` + `seo-result.md` + 封面 + digest）发布前，按 7 维审计，产出 `$DIR/viral-audit.md`。这是与 `final-review.md`（既有质量/合规/视觉验收）**并列**的爆款专项闸门。
+成品（`04-article-final.md` + `seo-result.md` + 封面 + digest）发布前，按 7 维审计，产出 `output/viral-audit.md`。这是与 `final-review.md`（既有质量/合规/视觉验收）**并列**的爆款专项闸门。
 
 ## 审计原则
 

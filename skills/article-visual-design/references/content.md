@@ -30,11 +30,11 @@
 内容配图的参考链由 `article_image_mode` 决定：
 
 ```
-cover_and_content → 封面图先生成 → 内容配图使用 ref_image_path="$DIR/cover.png"
+cover_and_content → 封面图先生成 → 内容配图使用 ref_image_path="output/cover.png"
 content_only → 不生成封面 → 内容配图不传 ref_image_path，或链到首张已生成图
 ```
 
-**为什么优先用封面**：封面开启时，如果每张图引用上一张，风格漂移会累积放大。封面是风格锚点，确保所有配图保持一致的视觉基准。封面关闭时，严禁把 `ref_image_path` 指向不存在的 `$DIR/cover.png`。
+**为什么优先用封面**：封面开启时，如果每张图引用上一张，风格漂移会累积放大。封面是风格锚点，确保所有配图保持一致的视觉基准。封面关闭时，严禁把 `ref_image_path` 指向不存在的 `output/cover.png`。
 
 **注意**：`ref_image_path` 只传递"风格语言"。内容贴切度由 prompt 中的 `visual_brief` 和 `required_entities` 决定，并由 vision 校验把关。
 
@@ -265,9 +265,9 @@ generate_image(
   project_id=$PROJECT_ID,
   prompt=<上面的 prompt>,
   image_type="content",
-  output_path="$DIR/img_01.png",
+  output_path="output/img_01.png",
   task_id=$TASK_ID,
-  ref_image_path="$DIR/cover.png",
+  ref_image_path="output/cover.png",
   verify_with_vision=true,
   verification_prompt=<步骤 2 的校验 prompt>
 )
@@ -342,7 +342,7 @@ $REQUIRED_ENTITIES（逐行列出）
 ```
 analyze_image(
   project_id=$PROJECT_ID,
-  file_path=$DIR/img_01.png,
+  file_path=output/img_01.png,
   prompt=<步骤 2 的校验 prompt>
 )
 ```
@@ -392,8 +392,8 @@ analyze_image(
         "第二次 prompt（通过）：'MUST CONTAIN tender green shoot...'"
       ]
     },
-    "ref_image_path": "$DIR/cover.png",
-    "file_path": "$DIR/img_01.png",
+    "ref_image_path": "output/cover.png",
+    "file_path": "output/img_01.png",
     "url": "https://cdn.example.com/img_01.png",
     "quality_status": "passed"
   }
@@ -416,7 +416,7 @@ analyze_image(
 - 每条必须有 `slot_id` + `section_index`，与 `visual-rhythm-plan.md` 对应
 - `verification_audit.attempt_count` 必须 ≥ 1（即至少校验过一次）
 - `verification.passed == false` 的图片，最终报告中必须列出
-- `ref_image_path` 必须等于 `$DIR/cover.png`
+- `ref_image_path` 必须等于 `output/cover.png`
 - `prompt_source_excerpt` 已升级为 `must_match_excerpts`（list，允许多条）
 
 ---
