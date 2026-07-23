@@ -21,7 +21,7 @@
 
 封面在 `visual-rhythm-plan.md` 中对应 `hero` slot（`image_size=full-bleed`, `2.35:1`），是全篇的视觉锚点。封面定调后，所有内容配图通过 `ref_image_path="output/cover.png"` 继承风格。详见 [rhythm.md](rhythm.md)。
 
-封面也必须通过 vision 校验（`required_entities` 来自文章核心隐喻），不通过则重试一次，仍失败请求用户协助。
+封面运行时先调用 `generate_image` 生成文件；需要内容审核时单独调用 `analyze_image`，由 Agent 根据主体、文字、构图和合规形成可见内容质量结论；通过后再单独调用 `upload_image`。上传失败只重试上传，不重新生成。生成、分析或整体质量闸门无法完成时写入 `failure-state.json` 并保留已有产物，不得请求用户中途协助。
 
 ## 核心原则：配置优先，账号/内容细化，Writer 无关
 
@@ -127,7 +127,7 @@ A 2.35:1 horizontal image for a WeChat article cover. Traditional Chinese aesthe
 - 与最终标题、digest 前半句强化同一个钩子
 - 主体大、对比强，缩成 200px 仍可读
 - 温暖/积极的情感基调（适合大多数中文内容账号）
-- **2.35:1 横版（900×383px 标准）**：生成用 `size="21:9"`（Volcengine 支持的最近比），服务端按 `platform=article + image_type=cover` 精确中心裁剪到 900×383 并像素断言——微信零裁剪，告别「需要手动裁剪的纯图」
+- **2.35:1 横版（900×383px 标准）**：生成用接近业务目标的 `size="21:9"`，服务端按 `platform=article + image_type=cover` 精确中心裁剪到 900×383 并像素断言——微信零裁剪，告别「需要手动裁剪的纯图」
 - **主体居中安全区**：主体落在画面中央 ≈1:1 区域，转发卡 1:1 自动裁切后仍完整；避开底部 20%（微信会在底部叠加文章标题）
 
 **禁止**：
@@ -150,10 +150,10 @@ A 2.35:1 horizontal image for a WeChat article cover. Traditional Chinese aesthe
 - **标题协同字段**：`final_title`、`digest_hook`、`cover_hook`
 - **文章核心隐喻**：`visual_metaphor`，即封面要表达的文章最强视觉隐喻
 - **缩略图与反同质化**：`thumbnail_strategy`、`anti_generic_constraints`
-- **`required_entities`**：封面必须出现的具体物体列表（vision 校验依据）
+- **`required_entities`**：封面必须出现的具体物体列表（内容审核依据）
 - **最终 prompt**：实际传给 `generate_image` 的完整 prompt
-- **封面质量评分卡**：`visual_quality_scorecard` + 校验 prompt + 结果（passed / score / missing_entities）
+- **封面质量评分卡**：`visual_quality_scorecard` + 内容审核 prompt + Agent 的可见内容质量结论
 
-封面图**必须 vision 校验通过后**才可作为发布草稿的 `thumb_media_id`；未通过则重试或请求用户协助，不得用未通过 vision 的封面发布。
+封面图必须通过 Agent 的内容质量判断，并由独立 `upload_image` 获得 `media_id` 后，才可作为发布草稿的 `thumb_media_id`；未通过时按创作预算重试，耗尽后写入 `failure-state.json`，不得使用失败封面发布。
 
-**注意**：封面仅用于 `thumb_media_id`，**不得复用为正文内容图**。正文每张图的 `wechat_url` 必须各自独立生成上 CDN——服务端 `publish_draft` 会硬拦截"正文 ≥2 图但唯一 URL==1"的草稿。
+**注意**：封面仅用于 `thumb_media_id`，**不得复用为正文内容图**。正文每张图都必须独立生成并调用 `upload_image` 取得自己的 `wechat_url`——服务端 `publish_draft` 会硬拦截"正文 ≥2 图但唯一 URL==1"的草稿。

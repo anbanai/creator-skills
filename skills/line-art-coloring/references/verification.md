@@ -231,8 +231,8 @@ Details:
 
 ### FAIL 修正
 
-1. 确定该图对应的**原线稿服务器路径**（单源 ref）；OpenAI/Gemini 可叠加该实体 best_ref 作颜色锚点
-2. Seedream：`ref_image_path` = 原线稿；OpenAI(gpt-image)：`ref_image_paths` = [原线稿, best_ref]（≤16）/ Gemini（≤10）
+1. 确定该图对应的**原线稿服务器路径**，始终作为第一参考；仅在实体已有可靠 best_ref 时追加颜色锚点
+2. 参考图按语义相关性排序，prompt 明确每张参考图的用途；服务端负责路由与数量限制，Agent 不维护供应商分支或数量上限
 3. 构建 correction prompt（明确指出偏差 + 正确值 + 保线固定语）
 4. 默认生成 1 个候选；质量优先模式生成 2 个候选选最优
 5. **回归检查**：验证修正结果的颜色改善 + 线稿是否退化（见「回归检查」）；退化则拒收、回退修正前版本
@@ -241,7 +241,7 @@ Details:
 
 1. 用当前图的原 prompt
 2. 增加反面约束（"must NOT be slightly too dark, must be exact [color]"）
-3. 以**原线稿作单源 ref**（OpenAI/Gemini 可叠加该实体 best_ref 锚点）
+3. 以**原线稿作为第一参考**，仅在与当前实体直接相关时追加 best_ref 颜色锚点
 4. 生成 1 个候选
 5. **回归检查**：验证修正结果，线稿退化则拒收、回退
 

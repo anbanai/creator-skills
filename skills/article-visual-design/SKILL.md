@@ -152,7 +152,7 @@ Phase 4: 配图生成与独立内容审核
 
 - **核心规格**：大图 2.35:1（900×383px，服务端强制精确裁剪），转发卡 1:1 由中心安全区自动覆盖，受控文字策略（按真实场景决定是否带短文字）。
 - **生成调用**：`generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="$DIR/cover.png", size="21:9")`；需要质量审核时单独调用 `analyze_image`，通过后调用 `upload_image`。
-  - `size="21:9"` 是生成提示比（Volcengine 支持的最近比）；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383 并像素断言**——微信零裁剪，告别「需要手动裁剪的纯图」。
+  - `size="21:9"` 是接近业务目标的生成提示比；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383 并像素断言**——微信零裁剪，告别「需要手动裁剪的纯图」。
 
 - **质量评分卡不过** → 根据可见问题锐化 prompt 重试，最多 3 次；仍不过请求用户协助，**不得**用未通过封面发布。
 - 详细推导链、6 维评分卡模板、迭代策略、`cover-prompt.md` 审计见 [article-cover-design/SKILL.md](../article-cover-design/SKILL.md)；三维风格方向参考见 [references/cover.md](references/cover.md)。

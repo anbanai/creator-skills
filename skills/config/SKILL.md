@@ -1,6 +1,6 @@
 ---
 name: config
-description: 'Use when user wants to initialize, view, or modify anban-creator configuration. Also use when user mentions ''配置项目'', ''设置风格'', ''修改配置'', ''config'', ''项目设置'', ''查看配置'', ''写作风格'', ''排版主题'', or when wanting to check or change project-level settings. Configures anban-creator project settings including writer style (写作风格), theme (排版主题), image provider (图片生成服务), and API keys.'
+description: 'Use when user wants to view or understand anban-creator project configuration. Also use when user mentions ''配置项目'', ''设置风格'', ''config'', ''项目设置'', ''查看配置'', ''写作风格'', ''排版主题'', ''视觉风格'', or when wanting to inspect project-level semantic settings. Covers writer style, theme, visual_style, and reference_image_path without exposing internal image routes.'
 ---
 
 # Anban Creator 配置管理
@@ -23,7 +23,7 @@ description: 'Use when user wants to initialize, view, or modify anban-creator c
 
 | MCP 工具 | 说明 |
 |----------|------|
-| `get_project_profile` (project_id, scope?) | 查看项目配置信息（定位、风格、主题、图片服务等） |
+| `get_project_profile` (project_id, scope?) | 查看项目配置信息（定位、写作风格、排版主题、视觉风格与参考图等） |
 | `list_projects` () | 列出所有项目 |
 
 ---
@@ -41,7 +41,8 @@ description: 'Use when user wants to initialize, view, or modify anban-creator c
 | `target_audience` | 目标受众 | "30-50岁关注健康的职场人士" |
 | `writer` | 写作风格 | "dan-koe" |
 | `theme` | 排版主题 | "default" |
-| `image_provider` | 图片生成服务 | "openai" |
+| `visual_style` | 图片视觉风格 | "温暖自然的生活摄影" |
+| `reference_image_path` | 可选项目参考图路径 | ".anban-creator/reference.png" |
 
 如果返回结果中某个字段为空或缺失，说明该配置项尚未设置。
 
@@ -71,15 +72,12 @@ description: 'Use when user wants to initialize, view, or modify anban-creator c
 
 主题由服务器管理，通过 `convert_markdown` MCP 工具自动应用项目配置的主题。
 
-### 图片生成服务（image_provider）
+### 图片视觉设置
 
-控制封面图和配图的生成 API。
+- `visual_style`：控制封面和配图应遵循的语义风格，例如色彩、质感、摄影/插画方向和品牌调性。
+- `reference_image_path`：可选项目参考图路径，用于提供品牌、产品或风格事实；具体是否使用仍由每张输出图的页面职责决定。
 
-| 服务名 | 说明 | 适合场景 |
-|--------|------|----------|
-| `openai` | OpenAI DALL-E（默认） | 通用场景，稳定性好 |
-| `gemini` | Google Gemini | 图片质量高，内联返回 |
-| `volcengine` | 火山引擎 Seedream | 中文语境理解好，异步生成 |
+`get_project_profile` 只提供这些业务语义设置，不暴露内部图片路由字段。Agent 不诊断或选择内部路由，生成图片时直接调用 `generate_image`。
 
 ---
 
@@ -96,7 +94,7 @@ description: 'Use when user wants to initialize, view, or modify anban-creator c
 优先级建议：
 1. **写作风格**（影响最大）→ 选择与账号定位匹配的风格
 2. **排版主题**（视觉效果）→ 选择与账号调性匹配的主题
-3. **图片生成服务**（可选）→ 默认 openai，除非有特殊需求
+3. **图片视觉风格**（可选）→ 用 `visual_style` 描述业务期望；需要事实锚点时配置 `reference_image_path`
 
 ### 第三步：验证配置
 

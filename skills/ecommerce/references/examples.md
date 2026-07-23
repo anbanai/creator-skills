@@ -14,9 +14,9 @@
 - Artifacts: share_01.png、manifest.json。
 - Quality gate: 未勾选模块不得生成，manifest 只列 share。
 
-### Case 3: Seedream 单参考风险
+### Case 3: 复杂包装的参考素材选择
 
-- Input: 复杂包装文字但项目模型是单参考。
-- Recommended path: 按最相关部位传单图，prompt 点名保真，并在报告披露一致性风险。
+- Input: 复杂包装文字且有正面、侧面、细节等多张产品素材。
+- Recommended path: 按当前页面职责选择真正相关的产品素材；参考图按语义相关性排序，prompt 点名每张图要保持的事实。服务端负责路由与数量限制，Agent 不按供应商或模型切换流程。
 - Artifacts: best-refs.md、risk-notes.md。
-- Quality gate: 不得自动切模型；只能建议用户下次选择多参考模型。
+- Quality gate: 不得把无关素材塞进当前页面；参考不足时记录事实缺口，不臆造商品细节。

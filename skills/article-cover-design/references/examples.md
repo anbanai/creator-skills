@@ -1,5 +1,7 @@
 # article-cover-design Examples
 
+所有案例遵循同一运行契约：先调用 `generate_image` 生成封面；需要内容审核时单独调用 `analyze_image`，由 Agent 写出可见内容质量结论；通过后再单独调用 `upload_image`。上传失败只重试上传，不重新生成。生成、分析或整体质量闸门无法完成时写入 `failure-state.json` 并保留已有产物，不得请求用户中途协助。
+
 ### Case 1: 抽象管理主题封面
 
 - Input: 文章核心是“中层管理的隐性成本”，无可视产品。
@@ -11,8 +13,8 @@
 
 - Input: 文章讲一位店长从亏损到盈利的复盘。
 - Recommended path: 用人物背影/柜台/账本构成故事张力，不复刻真人肖像，不把标题塞满画面。
-- Artifacts: cover-prompt.md、vision-score.md。
-- Quality gate: 6 维评分中主题相关性和安全区任一 FAIL 都要重生成。
+- Artifacts: cover-prompt.md、cover-review.md。
+- Quality gate: 可见主体与文章主题不相关，或中心安全区无法成立时重构概念并重新生成。
 
 ### Case 3: 系列栏目统一封面
 
@@ -62,4 +64,4 @@
 - Failure: 画风统一但内容相关度弱；`静水孤舟` 可替换到任何“先辨方向”的方法论文章，目标读者看不出 AI 工具、选题库、SOP、阅读下滑这些核心冲突。
 - Recommended path: 先写 `cover_strategy`，明确 `target_reader` 是企业主/内容负责人，`reader_pain_or_job` 是“买了 AI 工具但内容不增长”，`article_promise` 是“先建选题库和 SOP，再让 Agent 执行”。三选一概念可以围绕 `散落 AI 工具年卡`、`空白选题库`、`SOP 流程线`、`阅读对折` 这些正文证据展开。
 - Artifacts: cover-prompt.md 记录 `cover_concept_candidates`、`selected_cover_concept`、`cover_effectiveness_scorecard`。
-- Quality gate: `generic_swap_test`、`promise_proof_test`、`audience_motivation_test` 必须全过；仅有旧的 6 维 vision 全 high 不得通过；缺 `viral-audit.md` 不得发布。
+- Quality gate: `generic_swap_test`、`promise_proof_test`、`audience_motivation_test` 必须全过；仅有旧的视觉评分全为 high 不得通过；缺 `viral-audit.md` 不得发布。

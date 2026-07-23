@@ -113,8 +113,8 @@ Call `update_task_progress(task_id=$TASK_ID, stage="coloring", title="上色", d
    - **新实体**：按色彩理论纪律（性格/氛围匹配 + 跨实体区分度 + 与已有色和谐关系）定义颜色，加入 Color Bible
 3. **确定参考图（语义顺序稳定，原线稿作首要来源）**——这是保线的核心：
    - 先把**当前这张原始线稿**下载注册到服务器：`download_image(project_id="$PROJECT_ID", url=CDN_URL)` → 得到稳定的 `file_path`
-   - **Seedream（volcengine/volc/seedream）**：`ref_image_path` = 原线稿服务器路径（强 i2i 锁住构图=保线利器，正是上色求一致所需要的）
-   - **OpenAI gpt-image / Gemini（openai/gemini/google）**：`ref_image_paths` = 原线稿 + 锚点上色图（OpenAI gpt-image ≤16、Gemini ≤10；非 gpt-image 的 OpenAI 仅 1 张）
+   - `ref_image_paths` 第一项始终是当前原线稿；仅当某个实体已有可靠颜色锚点时，才把对应 best_ref 追加为后续参考
+   - **参考图按语义相关性排序**，并让 prompt 逐项说明“参考图 1/2”的用途；**服务端负责路由与数量限制**，Agent 不按供应商或模型分支
    - **禁止纯文生图**：每张图必带原线稿 ref；不要用前一张上色输出作下一张的主 ref（避免误差累积漂移）
 4. 构建上色 prompt（颜色规格 + 必要反面约束 + 集中保线语），颜色用简短语义色名 + 实物类比、不用 hex，prompt 控制在 500 词以内
 5. 默认生成 1 个候选上色图；满足触发条件（用户明确要求质量优先 / 第一候选颜色明显失败但线稿尚可 / 跨图关键实体需更稳定版本）才生成 2 个候选。保存返回的 `file_path`（MCP 服务器端路径）
@@ -189,7 +189,7 @@ Call `update_task_progress(task_id=$TASK_ID, stage="report", title="报告", des
 | 修正越改越破线 | 回归守卫——修正后线稿退化则拒收、回退修正前版本 |
 | 颜色不跟随参考图 | 原线稿作单源 ref + 简短颜色指令 + 必要反面约束 + 可选 2 候选选优 |
 | 某实体始终上色失败 | 3 轮修正（带回归守卫），仍失败标人工复核或 `needs_img2img` |
-| Seedream 多图复用同 ref 雷同 | 上色求的就是构图一致，原线稿作 ref 锁构图是期望行为（与种草笔记求多样相反） |
+| 多图复用同一原线稿参考导致构图一致 | 上色任务需要保持当前线稿构图；颜色锚点只补充颜色语义，不替代当前原线稿 |
 | 参考图选择不当 | 原线稿恒作单源 ref；best_ref 仅作颜色锚点，不作下一张的构图来源 |
 | 生成图数量多导致超时 | maxTurns=120，单图最多 3 次生成 |
 | MCP 工具不可用 | 按诊断步骤排查环境变量和连通性后报告 |
