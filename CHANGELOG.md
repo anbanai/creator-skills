@@ -4,6 +4,12 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [4.0.4] - 2026-07-24
+
+### Fixed
+
+- Canonicalized the Seednote quality-gate recovery instruction to write structured failures at `output/failure-state.json`.
+
 ## [4.0.3] - 2026-07-23
 
 ### Fixed

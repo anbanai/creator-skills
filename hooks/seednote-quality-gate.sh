@@ -133,7 +133,7 @@ if missing:
         f"种子笔记机械闸门未通过（{seednote_dir}），缺失：\n"
         + "".join(f"  - {item}\n" for item in missing)
         + "\n请完成 seednote-visual-design 规划、逐图生成和内容质量记录，并将全部产物留在 output/。"
-        + "只有 generate_image 失败才写结构化 failure-state.json；analyze_image 不可用只记录 warning。"
+        + "只有 generate_image 失败才写结构化 output/failure-state.json；analyze_image 不可用只记录 warning。"
     )
 
 sys.exit(0)
