@@ -16,7 +16,7 @@ description: 'Use when replicating viral short-video covers, generating a short-
 1. 用户/任务明确指定的 `image_ratio`、`size` 或平台规格优先。
 2. 项目/频道默认比例次之。
 3. 业务默认比例只作兜底：微信文章封面/正文图默认 `16:9`；Seednote/XLS/移动信息流默认 `3:4`；电商、广告投放、视频封面按具体平台素材位要求执行。
-4. 不得从模型路由、供应商默认 `size` 或模型能力反推业务比例；模型只决定能力和成本，比例属于创作场景约束。
+4. 不得从工具缺省值反推业务比例；比例只由用户、任务、项目或业务场景决定。
 
 
 ## MCP 工具
@@ -227,9 +227,9 @@ COVER_SERVER_PATH = result.file_path
 
 **5c. 本地文件 + prompt 备份**：
 
-- 下载 `DOWNLOAD_URL` 到 `output/cover.png`（始终为可 HTTP fetch 的存储 URL，直接用 curl/wget 下载）
-- 把实际 prompt、image_type、size、output_path、ref_image_path、provider、model、response_type、revised_prompt、output_mime 全部追加到 `output/cover-prompts.md`，便于复盘 504、构图偏移和颜色问题
-- 把 `COVER_SERVER_PATH` 记录到 `output/server-paths.md`
+- 下载 `DOWNLOAD_URL` 到 `$DIR/cover.png`（始终为可 HTTP fetch 的存储 URL，直接用 curl/wget 下载）
+- 把图片文件名、用途和最终创作 prompt 写入 `$DIR/cover-prompts.md`；参考封面的语义拆解与迁移决策保留在 `$DIR/reference-analysis.md` 和 `$DIR/cover-plan.md`
+- 把 `COVER_SERVER_PATH` 记录到 `$DIR/server-paths.md`
 
 ---
 
@@ -360,13 +360,13 @@ DO NOT include:
 
 ### 单张封面完成后
 
-- [ ] `output/input-manifest.md` 已生成，包含全部 6 个用户输入字段
-- [ ] `output/server-paths.md` 已记录 REF_SERVER_PATH（和 COVER_SERVER_PATH）
-- [ ] `output/reference-analysis.md` 已生成，覆盖 8 个分析维度
-- [ ] `output/cover-plan.md` 已生成，包含迁移决策和 style anchors
-- [ ] `output/cover.png` 实际下载到本地
-- [ ] `output/cover-prompts.md` 已备份完整 prompt + provider 元数据
-- [ ] `output/cover-review.md` 已生成，5 项审计 PASS/MINOR/FAIL 评级
+- [ ] `$DIR/input-manifest.md` 已生成，包含全部 6 个用户输入字段
+- [ ] `$DIR/server-paths.md` 已记录 REF_SERVER_PATH（和 COVER_SERVER_PATH）
+- [ ] `$DIR/reference-analysis.md` 已生成，覆盖 8 个分析维度
+- [ ] `$DIR/cover-plan.md` 已生成，包含迁移决策和 style anchors
+- [ ] `$DIR/cover.png` 实际下载到本地
+- [ ] `$DIR/cover-prompts.md` 已备份文件名、用途和最终创作 prompt
+- [ ] `$DIR/cover-review.md` 已生成，5 项审计 PASS/MINOR/FAIL 评级
 
 ### 全部完成后
 

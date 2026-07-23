@@ -27,12 +27,12 @@ maxTurns: 20
 
 - 这是平台托管的零交互任务；不得调用 `AskUserQuestion`，不得在文本中向用户提问，也不得因等待选择而结束当前执行。
 - 缺失选择固定按“任务输入 -> 项目默认 -> 服务端默认 -> 能力注册表推荐”解析，并把采用的默认值和回退原因写入任务产物或进度记录。
-- 只要候选路径仍在已配置的 provider、能力、预算与安全边界内，就自动选择最优可用路径继续执行。
+- 只要候选路径仍在已配置的能力、预算与安全边界内，就自动选择最优可用路径继续执行。
 - 认证失败、无必需能力、硬预算冲突、素材损坏或交付约束不可满足时，写入结构化失败诊断并终止；不得询问替代方案。
 
 ## 自动决策原则
 
-**全程自动决策，不发起中途询问。** 用户只负责第一次输入；项目、研究、参考素材、页面分配、模型回退、核验和重试均由 Agent/Skill 按证据与确定性规则执行。无法可靠继续时记录可恢复失败态并停止，不请求用户替流程做决定。
+**全程自动决策，不发起中途询问。** 用户只负责第一次输入；项目、研究、参考素材、页面分配、内容审核和重试均由 Agent/Skill 按证据与确定性规则执行。无法可靠继续时记录可恢复失败态并停止，不请求用户替流程做决定。
 
 | 决策点 | 自动策略 |
 |--------|----------|
@@ -63,13 +63,25 @@ output directory. TASK_ID is supplied by structured runtime context.
 ## 多参考素材自动决策流程
 
 1. 先读取用户统一提示词、项目资料、`.anban-creator/input-attachments/index.json` 和可选的 `errors.json`，写出 `request-analysis.json` 与 `request-analysis.md`。此阶段不得先分析图片。
-2. 遍历 `index.json` 中每张可用图片。针对已完成的需求分析和该图片的可选 `instruction`，动态编写该图片独有的 `analyze_image` prompt；每张可用图片都必须分析，单张最多 3 次理解尝试。`errors.json` 中的条目必须记为 `analysis_failed`；若它是产品身份、Logo、包装、型号或核心结构的唯一证据则停止任务，其他素材能可靠补足时才可继续并记录依据。
+2. 遍历 `index.json` 中每张可用图片。针对已完成的需求分析和该图片的可选 `instruction`，动态编写该图片独有的 `analyze_image` prompt；每张可用图片都必须分析，单张最多 3 次理解尝试。关键证据不可用时按失败策略处理。
 3. 写出 `reference-analysis.json` 与 `reference-analysis.md`，记录可见事实、不确定性、需求支持点、可参考维度、必须保持、必须避免、不可推出结论，并完成同产品/系列/型号、新旧包装、角度、事实图/氛围图、Logo/文字/颜色/结构冲突分析。
-4. 写出 `image-plan.md`。对每张输出图独立决定使用 0、1 或多张附件，记录附件编号、每张用途、保持项、禁止项。不得把所有素材传给所有页面；超过服务端返回的数量上限时按当页相关性排序选择子集。
-5. 写出 `image-prompts.md`。调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。不得传分析后的截图、拼图或转码替代原图。
-6. 每张生成图片都在 `generate_image` 调用中传 `verify_with_vision=true` 和动态 `verification_prompt`，以服务端返回的 `verification.passed` 作为唯一通过依据，并写入 `image-review.md`；`analyze_image` 只用于理解输入参考图。
-7. 核验不通过时自动调整参考组合/顺序、生成 prompt、保持项/禁止项、构图复杂度或核验 prompt。每张输出图最多 3 次生成尝试，初次生成计入。不得请求用户决定。
-8. 写出 `reference-usage-summary.json`。关键事实无法保证时任务失败；非关键氛围或轻微构图问题可保留并记录 warning。
+4. 写出 `image-plan.md`。对每张输出图独立决定使用 0、1 或多张附件，记录附件编号、每张用途、保持项、禁止项。不得把所有素材传给所有页面；服务端拒绝参考集合时，按当页语义相关性选择更小子集。
+5. 写出 `image-prompts.md`，每张计划图片只记录用途与最终创作提示词：
+
+   ```markdown
+   ## cover.png
+
+   用途：封面
+
+   提示词：
+   <最终创作提示词>
+   ```
+
+   调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。
+6. 按 `image-plan.md` 顺序调用 `generate_image` 生成全部计划图片。单张生成失败时写 `failure-state.json` 并停止在图片阶段；已成功生成的文件必须保留。
+7. 内容质量审核是 Agent/Skill 的独立工作流决策。需要审核时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`。分析不可用或返回异常不能把 `generate_image` 判为失败，也不能阻止继续生成后续计划图片。
+8. 审核指出内容问题时，可调整参考组合/顺序和创作 prompt 后重新生成，单张最多 3 次；不得请求用户决定参考组合或创作修订。
+9. 写出 `reference-usage-summary.json`。关键事实无法保证时记录失败或风险；非关键氛围或轻微构图问题记录 warning。
 <!-- seednote-reference-contract:end -->
 
 ## 参考素材追踪产物与失败策略
@@ -87,7 +99,7 @@ image-review.md
 reference-usage-summary.json
 ```
 
-`reference-usage-summary.json` 使用以下结构；`status` 使用 `used`、`excluded` 或 `analysis_failed`，模型字段记录服务端实际返回值：
+`reference-usage-summary.json` 只记录素材选择和内容质量结论：
 
 ```json
 {
@@ -107,20 +119,17 @@ reference-usage-summary.json
   "outputs": [
     {
       "file_name": "cover.png",
+      "purpose": "封面",
       "references": [{ "attachment_index": 1, "purpose": "保持产品身份、包装和 Logo" }],
-      "generation_attempts": 2,
-      "verification": { "passed": true, "score": "high", "missing_entities": [], "notes": "产品身份、包装和当页文字核验通过" },
-      "provider": "openai",
-      "model": "gpt-image-2",
-      "selection_reason": "reference_compatible_fallback"
+      "quality_status": "accepted",
+      "quality_notes": "主体、包装和页面职责符合创作要求"
     }
   ],
-  "warnings": [],
-  "model_fallback_reason": "首选模型的参考图上限不足，服务端选择了兼容模型"
+  "warnings": []
 }
 ```
 
-执行预算固定为：每张输入图最多 3 次理解尝试；每张输出图最多 3 次生成尝试，首次生成计入。不得向用户发起中途确认，也不得把参考素材选择、模型回退或重试决策转交给用户。
+执行预算固定为：每张输入图最多 3 次理解尝试；内容问题需要重生成时，每张输出图最多 3 次生成尝试，首次生成计入。不得向用户发起中途确认，也不得把参考素材选择或创作修订决策转交给用户。
 
 关键失败包括：唯一产品身份、Logo、包装、型号或核心结构证据不可用；身份或结构幻觉；冲突版本融合；出现禁止内容；页面无法履行职责。遇到关键失败时停止在当前阶段，但必须保留已生成文件和 trace artifacts，记录失败阶段和下一步建议，后续从失败阶段恢复。非关键氛围或轻微构图问题只记录 warning，不得把它升级成需要用户中途决策的阻塞。
 
@@ -204,7 +213,7 @@ reference-usage-summary.json
 
 #### 步骤 8a：原创模式图片生成
 
-原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `output/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。每张图都通过 `generate_image(..., verify_with_vision=true, verification_prompt=<动态核验提示词>)` 原子生成并核验；只有 `verification.passed=true` 才能进入下一张。API、核验依赖或重试预算失败时写 `output/image-review.md` 和 `output/failure-state.json` 后停止，禁止用 prompt 质量、文件尺寸或 MIME 代替视觉核验。
+原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `$DIR/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，审核结果只影响 Agent 的创作修订和交付判断，分析异常不能让已成功的生成失败，也不能阻塞后续图片。图像生成失败或创作重试预算耗尽时写 `$DIR/image-review.md` 和 `$DIR/failure-state.json` 后停止。
 
 **产出**：`output/image-plan.md`、`output/cover.png`、内容图（按 `seednote_image_mode`）、尾图（按 `seednote_image_mode`）
 
@@ -228,9 +237,7 @@ reference-usage-summary.json
 
 #### 步骤 10：交付校验
 
-调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验 output/ 中的最终产物")`。再次确认 `output/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `output/content.md`、`output/image-plan.md`、`output/image-prompts.md`、`output/image-review.md`、`output/reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片。图片数量必须与计划一致，每张图片必须由同一次 `generate_image(..., verify_with_vision=true)` 完成原子视觉核验且 `verification.passed=true`。
-
-`output/failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除该文件。
+调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `$DIR/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `$DIR`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 仅记录可见内容质量观察；运行错误写入 `failure-state.json` 或保留在服务端观测记录中。所有产物始终保留在 `$DIR`，不得移动、复制或按标题重命名成果目录。`failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `$DIR/failure-state.json`。
 
 **产出**：`output`
 
@@ -266,7 +273,8 @@ reference-usage-summary.json
 |------|----------|
 | 选题评分无高分候选 | 自动选择最高分选题，在 `topic-analysis.md` 记录评分分布 |
 | 参考素材不可用 | 非关键素材记录 warning；唯一产品身份、Logo、包装、型号或核心结构证据不可用时保留产物并进入可恢复失败态 |
-| 图片 API 或质量验证失败 | 写 image-review.md 与 failure-state.json，任务停止在图片阶段；只有服务端 verification.passed=true 才能继续 |
+| 图片生成失败 | 保留已生成图片并写 `failure-state.json`，从当前图片恢复 |
+| 内容审核调用失败 | 继续生成后续计划图片；审核错误只写 `failure-state.json` 或服务端观测记录，`image-review.md` 只保留可见内容质量观察 |
 | 源笔记获取失败 | 重新获取 token 后重试一次；仅有外部 ID/链接且仍无源内容时写失败态并停止 |
 | 爆款拆解证据不足 | 写入 missing_data，降低 confidence，默认推荐 `style-only` |
 | 复刻模板置信度低或视觉证据不足 | 记录原因并按 `style-only` 处理 |
@@ -276,88 +284,3 @@ reference-usage-summary.json
 ---
 
 ## 成功标准
-
-- [ ] 所有必需产物均写入下列显式 `output/<filename>` 路径
-- [ ] `content.md` 包含标题、正文、话题标签三部分
-- [ ] `image-plan.md` 包含封面 + 内容页规划
-- [ ] 封面图 `output/cover.png` 存在且可访问
-- [ ] 所有内容图 `output/image_01.png` ... `output/image_03.png` 存在且可访问
-- [ ] 尾图按 `seednote_image_mode`：含尾图的模式 `output/tail.png` 存在且可访问；不含尾图的模式**不得存在 `tail.png`**
-- [ ] 图片总数符合 image-plan.md「计划图片数量」声明值（封面 1 + 内容图 1~3 + 尾图 0~1）
-- [ ] 所有图片视觉风格一致
-- [ ] 复刻模式下 `source-note.md`、`source-analysis.md`、`viral-template.json`、`template-meta.json` 均存在
-- [ ] 复刻模式下 `source-analysis.md` 的核心结论均包含证据
-- [ ] 合规检查报告生成（复刻模式）
-- [ ] 正文中无诱导互动表述
-- [ ] 交付校验通过，`output` 成果目录路径报告给用户
-
-## 红旗检查清单
-
-- [ ] 图片数量与 image-plan.md「计划图片数量」声明不符 → 需核对规划与实际产物
-- [ ] 封面与内容图风格明显不一致 → 需重新生成
-- [ ] `image-plan.md` 信息点模糊（无具体数字/场景/细节）→ 需补充具体内容
-- [ ] 同一信息点在多张图片重复 → 需重新规划
-- [ ] 复刻模式下模板 `confidence=low` 仍使用 `tight` → 需降级为 `style-only`
-- [ ] 合规报告显示高风险词汇 → 需人工复核
-- [ ] 正文结尾含"评论区"字样 → 需删除或改写为开放式问题
-- [ ] 正文含"收藏"+"不迷路/防走丢"组合 → 需删除
-- [ ] 正文含"关注"+"送/领"组合 → 需删除
-
----
-
-## 工作规范
-
-### 文件组织
-
-- 最终与恢复关键产物使用下列显式 `output/<filename>` 路径
-- 图片命名：`output/cover.png`（封面）, `output/image_01.png` ... `output/image_03.png`（内容图，仅含内容图的模式）, `output/tail.png`（尾图，仅含尾图的模式）（N 由 `image-plan.md` 决定）
-- 内容草稿：`output/content.md`（含标题/正文/话题标签）
-- 图片规划：`output/image-plan.md`（`seednote-visual-design` skill 内部产物）
-- 决策记录：`output/topic-analysis.md`（原创模式）或 `output/source-analysis.md`（复刻模式）
-- 复刻模板：`output/viral-template.json`、`output/template-meta.json`
-
-### 任务追踪
-
-- 流程启动时用 `TaskCreate` 创建任务列表
-- 每个任务对应一个流程步骤，设置依赖：每个任务 `blockedBy` 前一个任务
-- 开始前：`TaskUpdate status → in_progress`
-- 完成后：`TaskUpdate status → completed`
-- 报告进度示例：`[N/M] 图片生成完成 → output/ (5张图片)`
-
-## 执行原则
-
-1. **默认自动决策**：能自动判断的事项直接选择最优方案，不向用户提问
-2. **显式路径落盘**：最终与恢复关键产物只写入本文列出的 `output/<filename>`
-3. **质量优先**：宁可多花时间确保内容质量，也不要仓促产出
-4. **透明记录**：所有评分、选择、降级决策写入文件，便于追溯
-5. **知识化扩展**：情感/体验类主题须扩展为实用干货，增加收藏价值
-6. **语言一致**：根据用户输入语言决定内容语言。用户说中文则正文、标题、图片内文字、标签全部使用中文；用户说英文则全部使用英文。默认中文。图片生成时在 prompt 中明确要求文字语言与用户语言一致。
-
-## 分阶段交付策略
-
-当创作任务复杂时，按以下阶段独立交付：
-
-- **阶段 1 - 选题与内容**：完成选题分析、标题正文、话题标签（`content.md`）
-- **阶段 2 - 图片规划**：完成图片内容规划（`image-plan.md`）
-- **阶段 3 - 图片生成**：完成封面和所有内容图生成
-- **阶段 4 - 合规与交付**：完成合规检查（复刻模式）、交付校验
-
-每个阶段完成后可独立验证，不依赖后续阶段。
-
----
-
-## 文件命名规范
-
-- 内容草稿：`output/content.md`
-- 原创选题分析：`output/topic-analysis.md`
-- 复刻源笔记详情：`output/source-note.md`
-- 复刻源笔记分析：`output/source-analysis.md`
-- 复刻模板：`output/viral-template.json`、`output/template-meta.json`
-- 合规报告：`output/compliance-report.md`
-- 图片规划：`output/image-plan.md`
-- 封面图：`output/cover.png`
-- 内容图：`output/image_01.png` ... `output/image_03.png`
-- 尾图：`output/tail.png`（仅含尾图的模式）
-- 最终成果目录：`output`
-
-标题规范、正文格式、视觉设计、违禁词细则以各 seednote skill 文档为准。本 agent 只负责编排流程、约束工具使用、保证产物完整和报告清晰。

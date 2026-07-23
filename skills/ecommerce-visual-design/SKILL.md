@@ -16,7 +16,7 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 1. 用户/任务明确指定的 `image_ratio`、`size` 或平台规格优先。
 2. 项目/频道默认比例次之。
 3. 业务默认比例只作兜底：微信文章封面/正文图默认 `16:9`；Seednote/XLS/移动信息流默认 `3:4`；电商、广告投放、视频封面按具体平台素材位要求执行。
-4. 不得从模型路由、供应商默认 `size` 或模型能力反推业务比例；模型只决定能力和成本，比例属于创作场景约束。
+4. 不得从工具缺省值反推业务比例；比例只由用户、任务、项目或业务场景决定。
 
 
 ## 受众与目标
@@ -27,10 +27,10 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 
 - **禁止跳过 asset-plan.md 直接调 generate_image**
 - **禁止生成未在 `selected_modules` 中的模块**——未选模块不出现在 asset-plan.md、不调 generate_image、不进 manifest
-- **每张电商图必须带上它描绘部位的相关产品参考**——按「产品图清单」的 subject 选相关产品图作 ref，**禁止任何「纯文生图不传 ref」的电商图**（那是种草笔记的反雷同逻辑，对电商是错的：产品必须来自真实参考，不得凭文本臆造）。多参考 provider（OpenAI/Gemini）传相关子集 ≤16；Seedream 单参考传其中最相关一张
+- **每张电商图必须带当前画面相关的产品原图**——按「产品图清单」subject 选择语义相关子集，保持数组顺序与 prompt 中“参考图 N”一致；服务端负责参考能力与数量限制。禁止纯文臆造产品
 - **prompt 必须点名保真**——明确写出「本图{部位}必须与【产品图清单】第 N 张完全保持一致——{该图可见特征}不得偏差」，禁止泛泛「保留产品」（详见步骤 3）
-- **每次调用 generate_image 后必须把实际 prompt + provider + model + size + output_path + ref_image_path + revised_prompt 追加到 `output/image-prompts.md`**
-- **一致性关键模块的每张图必须 `verify_with_vision=true`**，自检结果写入 `output/best-refs.md` 与 manifest
+- **`$DIR/image-prompts.md` 只记录每张图片的用途、最终创作 prompt 和参考图编号**
+- **一致性关键模块生成后单独调用 `analyze_image`**，对照对应原图审核产品、文字与合规；结果写入 `$DIR/best-refs.md` 与 manifest
 - **图内文字语言必须与用户语言一致**（中文场景用简体中文），文字用全角引号「」包裹；禁止英文/拼音/乱码/伪词
 
 ---
@@ -39,20 +39,20 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 
 | MCP 工具 | 用途 |
 |----------|------|
-| `generate_image(project_id, task_id, prompt, image_type, output_path, size, ref_image_path, ref_image_paths, verify_with_vision, verification_prompt)` | 生成单张电商素材；模型由 server 从任务/项目配置解析，agent 不传模型 key（**按本图所需部位只传相关产品图**：OpenAI/Gemini `ref_image_paths` ≤16；Seedream 单张 `ref_image_path`） |
+| `generate_image(project_id, task_id, prompt, image_type, output_path, size, ref_image_path, ref_image_paths)` | 从创作 prompt 和有序产品参考生成并登记单张电商素材 |
 | `analyze_image(project_id, file_path\|image_url, prompt)` | 视觉自检 / 锚点评估 |
 | `compress_image(file_path)` | 大图压缩 |
 
-> `generate_image` 的参考图按本图所需部位**按需选择**（查 `output/product-bible.md`「产品图清单」的 subject）：OpenAI/Gemini 传相关产品图子集 `ref_image_paths`（≤16）；Seedream 仅 `ref_image_path` 单张（传最相关一张）。**每张电商图必带相关产品 ref**，搭配「点名保真 prompt + 视觉自检」兜底。多参考保真首选 `openai-gpt-image`（gpt-image-2）。
+> `generate_image` 的参考图按本图所需部位选择：只传当前画面相关的原图，数组顺序与 prompt 编号一致；服务端拒绝集合时保留最关键产品证据并按语义相关性缩小子集。每张电商图必须有真实产品参考。
 
 ---
 
 ## 输入
 
-- `output/product-bible.md`（产品档案 + `$ANCHOR_REF` 锚点）
-- `output/copywriting.md`（排序卖点 + 各模块文案）
-- 项目画像（已解析 `image_model{provider,model,key}` + 风格）
-- 任务选项：`selected_modules`、`target_platform`、`visual_style`、语言、各模块数量（图像模型已在建任务时选定，经 `image_model` 读取）
+- `$DIR/product-bible.md`（产品档案 + `$ANCHOR_REF` 锚点）
+- `$DIR/copywriting.md`（排序卖点 + 各模块文案）
+- 项目画像（品牌、受众、参考资产与视觉风格）
+- 任务选项：`selected_modules`、`target_platform`、`visual_style`、语言、各模块数量
 
 ---
 
@@ -91,7 +91,7 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 
 ## 步骤 3：按需选参考图 + 点名保真策略
 
-读项目画像已解析的 `image_model{provider,model,key}`（server 从任务/项目配置解析，**整任务单一模型，不做 per-module 自动切换**）。agent 只读取 provider/model 决定参考图策略，不选择或传递模型 key。
+读取项目画像、产品档案和资产计划。Skill 为每张图决定语义参考集合和稳定顺序。
 
 **核心原则（电商独有，与种草笔记的反雷同逻辑刻意相反）**：每张电商图都描绘某个产品部位（茶汤/干茶/叶底/包装…），**只传该部位对应的那几张产品图作参考**，并在 prompt 里点名「与第 N 张完全一致」。禁止任何「纯文生图不传 ref」的电商图——产品必须来自真实参考，不得凭文本臆造。
 
@@ -99,15 +99,15 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 2. **锚点优先**：先生成主图①（点击主图），确立色系/版式/字体基准。
 3. **按需选参考图**（查 `output/product-bible.md`「产品图清单」的 subject + 序号）：
    - asset-plan 每张图已声明 `所需产品图=[第N张(subject), ...]`。
-   - **OpenAI / Gemini**（`provider` ∈ `openai`/`gemini`/`google`）：把所需产品图作 `ref_image_paths` 传给 `generate_image`（≤16），服务端合并为多图编辑请求。例：茶汤特写图只传「第2张(茶汤)」；冲泡场景图传「第2张(茶汤)+第1张(包装)」。
-   - **火山 Seedream**（`provider` ∈ `volcengine`/`volc`/`seedream`）：仅单张 `ref_image_path`——传所需产品图里**最相关的一张**（茶汤图传茶汤那张，叶底图传叶底那张）。不再用「纯文生图规避雷同」。
+   - 把 asset-plan 声明的所需产品原图按语义重要性排序后作为 `ref_image_paths`，并让 prompt 中“参考图 N”与数组顺序一致。
+   - 服务端拒绝参考集合时，保留当前画面最关键的产品证据并按语义相关性缩小子集后重试。
    - 同 subject 多张时按清单序号精确到具体图。
 4. **点名保真 prompt**（产品档案前缀块之后追加）：
    `【产品保真·必须严格遵守】本图{部位}必须与【产品图清单】第N张（{subject}）完全保持一致——{该图可见特征：汤色/透亮度/形态/包装文字/logo/主色/材质}不得偏差/增删/臆造；仅允许生成场景/构图/光影/道具；参考图未显示的细节不得凭空添加。`
    多部位图逐部位点名对应序号；单部位图也必须点名序号（「与第 N 张完全一致」），**禁止泛泛「保留产品」**。
    `{部位}` 取自产品档案「产品图清单」的 subject，**按品类用对应部位词**：茶类=茶汤/干茶/叶底/包装；服饰=平铺/挂拍/细节/材质/模特；3C=正面/背面/接口/屏幕/配件/参数表；美妆=瓶身/膏体/质地/上脸/成分表；食品=成品/原料/包装正反/保质期标识；家居=整体/细节/使用场景（详见 product-analysis skill 的品类 subject 词表）。
-5. **视觉自检循环**：一致性关键模块每张 `verify_with_vision=true`，verification_prompt **对照该序号原图**核对该部位是否一致（见步骤 5）。FAIL → 走下方「**包装文字漂移兜底**」升级，**最多 3 轮**；仍不达标标 `needs_reference` 并在 manifest 披露。
-6. **诚实标注**：多参考 + 点名保真能把产品做到高度一致，但仍非像素级 100% 还原（复杂包装文字/长成分表可能漂移）。OpenAI/Gemini 多参考保真最好；nano-banana（Gemini 2.5 Flash Image）更强但需配 key。差异作为风险记录。
+5. **视觉自检循环**：一致性关键模块生成后单独调用 `analyze_image`，对照 asset-plan 中的原图序号审核产品、文字和合规。FAIL 时走「包装文字漂移兜底」，最多 3 轮；仍不达标标 `needs_reference` 并在 manifest 披露。
+6. **诚实标注**：语义参考与点名保真能提高一致性，但复杂包装文字仍不能承诺像素级还原；差异作为风险记录。
 
 **包装文字漂移兜底**（复杂包装文字/长成分表是保真难点，逐级升级）：
 1. 第 1 轮 FAIL → 自检结果里的 `missing_entities`/漂移项**识别是哪些具体文字/标记漂移**（logo 文字、品名、规格、成分关键词）。
@@ -124,19 +124,18 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 - `prompt` = 产品档案前缀块 + **点名保真块（本图{部位}与【产品图清单】第 N 张完全一致）** + 本张视觉描述（视觉主体/场景/构图/打光）+ 必须出现的卖点文字（用「」包裹）+ `$STYLE` 风格延续块 + 禁用元素
 - `image_type`：主图/封面/分享/SKU 用 `"cover"` 配置，详情图用 `"content"` 配置（按项目 image API 配置；默认 cover 用更高质量）
 - `size`：按 asset-plan
-- `output_path`：`output/<模块>_<NN>.png`
-- `ref_image_path` / `ref_image_paths`：按步骤 3「按需选参考图」——只传本图所需部位的产品图（OpenAI/Gemini 传相关子集 `ref_image_paths`；Seedream 传最相关一张 `ref_image_path`）。**禁止不传 ref**
+- `output_path`：`$DIR/<模块>_<NN>.png`
+- `ref_image_paths`：只传本图所需部位的产品原图，顺序与 prompt 编号一致；服务端拒绝时缩小为更相关的子集。禁止不传 ref
 - `task_id=$TASK_ID`
-- `verify_with_vision`：一致性关键模块 true
-- `verification_prompt`：见步骤 5
 
-**Prompt 备份**：每次调用后把实际 prompt/provider/model/size/output_path/ref_image_path/revised_prompt 追加 `output/image-prompts.md`。
+
+**Prompt 备份**：每张图片只把用途、最终创作 prompt 和参考图编号写入 `$DIR/image-prompts.md`。
 
 **失败处理**：单图失败重试一次仍失败则跳过并在 manifest 标注；主图①失败重试两次仍失败则**停止并请求用户协助**（主图是 CTR 之战，不可缺）。重试必须覆盖同一 output_path，禁止新增 `_v2` 候选文件；交付前清理目录，仅保留 asset-plan 列出的文件。
 
 ## 步骤 5：视觉自检（电商专属维度）
 
-一致性关键模块的 `verification_prompt` 由产品档案派生，要求模型返回 JSON `{all_entities_present, missing_entities, relevance_score, overall_pass, has_forbidden_content, forbidden_notes}`：
+一致性关键模块生成后，单独调用 `analyze_image` 并使用以下内容审核 prompt：
 
 ```
 你是电商视觉质检员。检查这张电商素材图是否满足：
@@ -147,7 +146,7 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 返回严格 JSON：{all_entities_present, missing_entities, relevance_score(high/medium/low), overall_pass(bool), has_forbidden_content(bool), forbidden_notes}
 ```
 
-自检结果写入 `output/best-refs.md`（逐图：provider/自检 PASS-FAIL/重试轮次/needs_reference）。
+自检结果写入 `$DIR/best-refs.md`（逐图：内容质量 PASS/FAIL、创作修订轮次、`needs_reference`）。
 
 ## 步骤 6：模块内一致性复查
 
@@ -158,7 +157,7 @@ description: 'Use when 电商视觉设计与生成——商业转化导向的视
 SKU 变体图要求「**同一版式、同一打光、仅变体属性不同**」，是保真与差异化的平衡：
 
 - **版式一致**：所有变体共享 `$STYLE`（同构图/背景/打光/字体/版式），仅颜色/款式/规格属性不同——让买家一眼看出是「同一系列的不同选项」。
-- **色准控制**：色彩变体（多色服饰/美妆色号）**用产品图原图色作锚**，prompt 点名「色号/色名与第 N 张（{variant}）完全一致」，`verify_with_vision` 对照原图核色；不得臆造色卡外的颜色。
+- **色准控制**：色彩变体（多色服饰/美妆色号）**用产品图原图色作锚**，prompt 点名「色号/色名与第 N 张（{variant}）完全一致」，生成后单独用 `analyze_image` 对照原图核色；不得臆造色卡外的颜色。
 - **避免雷同**：同构图变体换道具/角度微调（如不同色款的摆位/搭配道具略有差异），避免多张像复制粘贴；但版式骨架不变。
 - **点名保真**：每个变体点名其对应的产品图序号（「与第 N 张（{variant}色）完全一致」），**禁止纯文生图臆造变体**。
 - **命名**：`sku_<variant>.png`，variant 名来自产品档案或用户指定。
@@ -170,7 +169,7 @@ SKU 变体图要求「**同一版式、同一打光、仅变体属性不同**」
 | 问题 | 原因 | 修复 |
 |------|------|------|
 | 产品跨图不一致 / 与原图不符 | 漏传或错传相关部位 ref / 点名保真弱 | 按所需部位只传相关产品图（步骤 3）+ 强化点名保真「与第 N 张完全一致」+ 自检对照第 N 张原图重生成 |
-| 多张场景图雷同 | 多图复用同一张参考 | 按需选不同部位 ref（茶汤图传茶汤、叶底图传叶底，天然差异化）；确需同张时改用多参考 provider（OpenAI/Gemini） |
+| 多张场景图雷同 | 多图复用同一张参考 | 按需选不同部位 ref（茶汤图传茶汤、叶底图传叶底，天然差异化）；确需同张时追加语义相关的产品原图 |
 | 图内文字乱码/英文 | 语言约束弱 | 文字用「」包裹 + 末尾独立「禁止英文/拼音/乱码」段 + 缩短到 ≤12 字 |
 | 卖点未可视 | prompt 只描述产品没描述卖点符号 | 把卖点转成可视符号写进 prompt（见 `$STYLE` 卖点可视化） |
 | 主图①无冲击 | 缺钩子/层级混乱 | 按 main-image.md 的 CTR 模板重做：主体最大→卖点→钩子；信息层级用 design-principles 的 5 变量实现 |
@@ -185,7 +184,7 @@ SKU 变体图要求「**同一版式、同一打光、仅变体属性不同**」
 
 ## 产出
 
-- `output/asset-plan.md`（仅含已选模块的计划）
-- `output/image-prompts.md`（全部 prompt 备份）
-- `output/best-refs.md`（逐图 provider/自检/重试/needs_reference）
+- `$DIR/asset-plan.md`（仅含已选模块的计划）
+- `$DIR/image-prompts.md`（全部 prompt 备份）
+- `$DIR/best-refs.md`（逐图内容质量结论/创作修订/needs_reference）
 - 各模块图片：`main_01..05.png`、`detail_01..NN.png`、`cover_01..NN.png`、`share_01..NN.png`、`sku_<variant>.png`

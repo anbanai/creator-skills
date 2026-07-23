@@ -4,12 +4,17 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
-## [3.0.2] - 2026-07-22
+## [4.0.0] - 2026-07-23
 
 ### Changed
 
-- Removed `list_task_files` from in-execution Agent delivery validation; the existing final Hook remains the single workspace artifact collector for both successful and failed runs.
-- Clarified that `list_task_files` is a terminal inspection and recovery query over published and collected files.
+- Moved image workflow sequencing, retries, content-quality decisions, and publishing uploads into Agents and Skills.
+- Made `generate_image`, `analyze_image`, and `upload_image` independent capabilities instead of one combined MCP workflow.
+- Reduced image prompt and review artifacts to creative intent, semantic reference choices, and visible content-quality observations.
+
+### Removed
+
+- Removed generation routing, response metadata, embedded verification, and upload controls from Agent and Skill contracts.
 
 ## [3.0.1] - 2026-07-22
 

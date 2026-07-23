@@ -16,15 +16,15 @@ description: 'Use when creating seednote visual content including covers, conten
 1. 用户/任务明确指定的 `image_ratio`、`size` 或平台规格优先。
 2. 项目/频道默认比例次之。
 3. 业务默认比例只作兜底：微信文章封面/正文图默认 `16:9`；Seednote/XLS/移动信息流默认 `3:4`；电商、广告投放、视频封面按具体平台素材位要求执行。
-4. 不得从模型路由、供应商默认 `size` 或模型能力反推业务比例；模型只决定能力和成本，比例属于创作场景约束。
+4. 不得从工具缺省值反推业务比例；比例只由用户、任务、项目或业务场景决定。
 
 
 ## 硬性纪律（违反视为流程失败，会被 SubagentStop 机械闸门拦截）
 
 - **禁止跳过 image-plan.md 直接调 generate_image**
 - **禁止 prompt 中省略「必须出现文字」字段**（封面是主文案，内容图是 2-4 条短句，尾图是 1-2 条文案）
-- **每次调用 generate_image 后必须把实际 prompt + provider + model + revised_prompt 追加到 `output/image-prompts.md`**
-- **最后必须跑 Step 6 质量验证，写入 `output/image-review.md`**
+- **`$DIR/image-prompts.md` 每张图片只记录文件名、用途与最终创作提示词**
+- **最后必须跑 Step 6 质量验证，写入 `$DIR/image-review.md`**
 - **图片内所有可见文字必须是简体中文**（用户使用中文时），禁止英文/拼音/乱码/伪词
 - **prompt 中文字必须用全角引号「」或书名号《》包裹**，让模型识别为"文字内容"而非视觉描述
 
@@ -34,8 +34,8 @@ description: 'Use when creating seednote visual content including covers, conten
 
 | MCP 工具 | 说明 |
 |----------|------|
-| `generate_image` (project_id, prompt, image_type, output_path, task_id, ref_image_paths, verify_with_vision, verification_prompt) | 生成、持久化、登记并核验单张图片。每次都传 `verify_with_vision=true` 和当页动态 `verification_prompt`；**`task_id=$TASK_ID` 必传**。服务端生成资产由当前 execution 持有，并在最终 Hook 提交工作区 manifest 时合并进入同一终态文件集合；Agent 不查询终态文件列表来判断当前上传是否完成 |
-| `upload_image` (project_id, file_path) | 上传图片到微信素材库 |
+| `generate_image` (project_id, task_id, prompt, image_type, output_path, size, ref_image_paths) | 从创作 prompt 和有序参考集合生成并登记单张任务图片 |
+| `analyze_image` (project_id, task_id, file_path, prompt) | 独立分析已生成图片的可见主体、文字、构图与合规；是否调用及如何处理结果由 Agent/Skill 决定 |
 
 ---
 
@@ -47,21 +47,21 @@ description: 'Use when creating seednote visual content including covers, conten
 
 ## Seednote 视觉方法论
 
-本 skill 的目标是把内容蒸馏成大模型可执行的高质量图像指令，再通过 `generate_image` MCP 生成图片。流程不追求“凑齐文件”，而是让每张图都有明确的信息职责和审美秩序。
+本 skill 的目标是把内容蒸馏成高质量图像指令，再通过 `generate_image` MCP 生成图片。流程不追求“凑齐文件”，而是让每张图都有明确的信息职责和审美秩序。
 
 1. **内容蒸馏**：从 `output/content.md` 提取主题、卖点、情绪、证据、关键短句、目标受众和每页承载的信息密度。
 2. **视觉策略**：先确定统一色彩、画面主体、标题层级、信息密度、镜头/场景方向和内容页节奏，再写入 `output/image-plan.md`。
 3. **社交图文视觉原则**：用 `editorial 信息层级` 安排主标题、辅助信息、证据点和视觉主体；用 `Swiss/magazine 秩序感` 控制留白、对齐、分组和对比；用 `图文节奏` 保证封面负责点击，内容图负责理解，尾图负责收束。
 4. **Prompt 蓝图**：每张图都明确角色、可见文案、视觉主体、构图层级、风格延续和验收标准；prompt 只描述要得到的画面效果和内容关系。
-5. **生成记录**：每次调用 `generate_image` 后，把实际 prompt、`provider`、`model`、`output_path`、返回字段和修订信息追加到 `output/image-prompts.md`。
-6. **质量复盘**：逐图写 `output/image-review.md`，检查主题相关度、文字准确性、移动端可读性、风格一致性、文件可访问性和 `seednote_image_mode` 一致性。
+5. **生成记录**：`$DIR/image-prompts.md` 每张图片只写文件名、用途和最终创作提示词。
+6. **质量复盘**：如工作流需要内容质量审核，生成后单独调用 `analyze_image`；`$DIR/image-review.md` 只记录可见主体、文字、构图和合规观察。
 
-如果图片 API 返回 `error`、超时，或服务端视觉核验因配置/网络不可用而返回 `verification.passed=false`，记录 `provider`、`model`、`output_path`、原始 `error`/`verification.notes` 和`下一步建议` 到 `output/image-review.md`，写入 `output/failure-state.json`，并停止在图片阶段。`verification.notes` 包含 `verification call failed:` 表示图片已经生成、但核验运行依赖失败；必须原样记录其后的计费/配置/网络错误，保留返回的图片资产并立即停止，不得误写成图片 API 超时，不得再次调用 `generate_image`。禁止用 prompt 质量、文件存在、尺寸或 MIME 代替视觉核验。
+只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段。`analyze_image` 不可用或结果异常不能把已成功的生成判为失败，也不能阻止继续生成后续计划图片；运行错误写入 `failure-state.json` 或保留在服务端观测记录中，不能写入 `image-review.md`。
 
 `failure-state.json` 必须是结构化可恢复失败态：
 
 ```json
-{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"vision_verification_unavailable","message":"<原始错误摘要>","resume_from":"image_generation"}
+{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"image_generation_failed","message":"<原始生成错误摘要>","resume_from":"image_generation"}
 ```
 
 ---
@@ -69,14 +69,24 @@ description: 'Use when creating seednote visual content including covers, conten
 <!-- seednote-reference-contract:start -->
 ## 多参考素材自动决策流程
 
-1. 先读取用户统一提示词、项目资料、`.anban-creator/input-attachments/index.json` 和可选的 `errors.json`，写出 `request-analysis.json` 与 `request-analysis.md`。此阶段不得先分析图片。
-2. 遍历 `index.json` 中每张可用图片。针对已完成的需求分析和该图片的可选 `instruction`，动态编写该图片独有的 `analyze_image` prompt；每张可用图片都必须分析，单张最多 3 次理解尝试。`errors.json` 中的条目必须记为 `analysis_failed`；若它是产品身份、Logo、包装、型号或核心结构的唯一证据则停止任务，其他素材能可靠补足时才可继续并记录依据。
-3. 写出 `reference-analysis.json` 与 `reference-analysis.md`，记录可见事实、不确定性、需求支持点、可参考维度、必须保持、必须避免、不可推出结论，并完成同产品/系列/型号、新旧包装、角度、事实图/氛围图、Logo/文字/颜色/结构冲突分析。
-4. 写出 `image-plan.md`。对每张输出图独立决定使用 0、1 或多张附件，记录附件编号、每张用途、保持项、禁止项。不得把所有素材传给所有页面；超过服务端返回的数量上限时按当页相关性排序选择子集。
-5. 写出 `image-prompts.md`。调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。不得传分析后的截图、拼图或转码替代原图。
-6. 每张输出都在调用 `generate_image` 时传入动态编写的 `verification_prompt` 和 `verify_with_vision=true`，原子核验产品身份、结构、颜色、Logo、包装、文字、虚构部件、版本融合、禁止内容、页面职责和文字可读性；把服务端返回的 `verification` 原样记录到 `image-review.md`。`analyze_image` 只用于理解输入参考图，不再作为生成后核验的第二条调用链。
-7. 核验不通过时自动调整参考组合/顺序、生成 prompt、保持项/禁止项、构图复杂度或核验 prompt。每张输出图最多 3 次生成尝试，初次生成计入。不得请求用户决定。
-8. 写出 `reference-usage-summary.json`。关键事实无法保证时任务失败；非关键氛围或轻微构图问题可保留并记录 warning。
+1. 先完成需求分析，再分析每张可用附件，写出 `request-analysis.*` 与 `reference-analysis.*`。
+2. 写出 `image-plan.md`，对每张输出图独立决定使用 0、1 或多张附件，不得把所有素材传给所有页面。
+3. 写出 `image-prompts.md`，每张图片只记录：
+
+   ```markdown
+   ## cover.png
+
+   用途：封面
+
+   提示词：
+   <最终创作提示词>
+   ```
+
+4. 调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。
+5. 按 `image-plan.md` 生成全部计划图片。单张生成失败时保留已有文件，写 `failure-state.json` 并停止。
+6. 内容质量审核由 Agent/Skill 决定。需要时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`；分析异常不能让生成失败，也不能阻止继续生成后续计划图片。
+7. 内容问题可调整参考组合/顺序和创作 prompt 后重新生成，单张最多 3 次。
+8. 写出 `reference-usage-summary.json`，只记录素材用途、选择依据与内容质量结论。
 <!-- seednote-reference-contract:end -->
 
 ## 参考素材追踪产物与失败策略
@@ -94,7 +104,7 @@ image-review.md
 reference-usage-summary.json
 ```
 
-`reference-usage-summary.json` 使用以下结构；`status` 使用 `used`、`excluded` 或 `analysis_failed`，模型字段记录服务端实际返回值：
+`reference-usage-summary.json` 只记录素材选择和内容质量结论：
 
 ```json
 {
@@ -103,31 +113,25 @@ reference-usage-summary.json
     {
       "attachment_index": 1,
       "file_name": "attachment_01_front.png",
-      "url": "https://example.invalid/front.png",
-      "instruction": "保持包装和 Logo",
       "status": "used",
-      "decision_summary": "正面图是产品身份和包装文字的主要证据",
-      "analysis_attempts": 1,
+      "decision_summary": "正面图用于保持产品身份、包装和 Logo",
       "warnings": []
     }
   ],
   "outputs": [
     {
       "file_name": "cover.png",
+      "purpose": "封面",
       "references": [{ "attachment_index": 1, "purpose": "保持产品身份、包装和 Logo" }],
-      "generation_attempts": 2,
-      "verification": { "passed": true, "score": "high", "missing_entities": [], "notes": "产品身份、包装和当页文字核验通过" },
-      "provider": "openai",
-      "model": "gpt-image-2",
-      "selection_reason": "reference_compatible_fallback"
+      "quality_status": "accepted",
+      "quality_notes": "主体、包装和页面职责符合创作要求"
     }
   ],
-  "warnings": [],
-  "model_fallback_reason": "首选模型的参考图上限不足，服务端选择了兼容模型"
+  "warnings": []
 }
 ```
 
-执行预算固定为：每张输入图最多 3 次理解尝试；每张输出图最多 3 次生成尝试，首次生成计入。不得向用户发起中途确认，也不得把参考素材选择、模型回退或重试决策转交给用户。
+执行预算固定为：每张输入图最多 3 次理解尝试；内容问题需要修订时，每张输出图最多 3 次生成尝试。不得向用户发起中途确认。
 
 关键失败包括：唯一产品身份、Logo、包装、型号或核心结构证据不可用；身份或结构幻觉；冲突版本融合；出现禁止内容；页面无法履行职责。遇到关键失败时停止在当前阶段，但必须保留已生成文件和 trace artifacts，记录失败阶段和下一步建议，后续从失败阶段恢复。非关键氛围或轻微构图问题只记录 warning，不得把它升级成需要用户中途决策的阻塞。
 
@@ -278,8 +282,8 @@ reference-usage-summary.json
 2. **封面**：使用 [references/cover.md](references/cover.md) 的 Prompt 模板生成，并传入封面计划选中的原始路径子集
 3. **内容图**：使用 [references/content.md](references/content.md) 的 Prompt 模板逐张生成（1~3 张），传入当前页选中的原始路径子集以及对应信息点和布局；没有相关参考时纯文生图；始终保证不同实景背景和构图角度
 4. **尾图（仅当 `seednote_image_mode` 包含尾图时）**：使用 [references/tail.md](references/tail.md) 的 Prompt 模板单独生成，并仅传尾图相关的原始路径子集；不含尾图则跳过
-5. **原子生成与核验**：每次调用 `generate_image` 都传 `verify_with_vision=true` 和当前页面独有的 `verification_prompt`；把实际 prompt、核验 prompt、`image_type`、请求 `size`、实际 `width`/`height`、`output_path`、`ref_image_paths`、返回的 `provider`、`model`、`selection_reason`、`response_type`、`revised_prompt`、`output_mime`、`verification` 追加写入 `output/image-prompts.md`
-6. **失败记录**：如果 `generate_image` 返回 `error`、超时，或 `verification` 缺失/因运行依赖不可用而失败，立即写入 `output/image-review.md` 和 `output/failure-state.json`，保留已有产物并停止；必须逐字保留工具返回的错误分类，不得把计费或配置错误改写成超时。只有核验服务正常且内容质量未通过时，才按下一步重试预算自动修订
+5. **生成与创作记录**：每次只调用 `generate_image` 生成当前计划图片；`image-prompts.md` 使用“文件名 / 用途 / 提示词”格式记录创作内容。
+6. **失败记录**：`generate_image` 返回错误或超时时，写入 `$DIR/failure-state.json`，保留已生成产物并停止；不得把分析、计费、配置或其他错误改写成图片生成超时。
 
 ### 步骤 6：质量验证
 
@@ -291,7 +295,7 @@ reference-usage-summary.json
 - [ ] 茶类/产品/数字参数准确，不出现误导性内容（例如"10 秒出汤"不得写成"焖泡10秒"）
 - [ ] 封面、内容图（、尾图，仅当生成）视觉风格一致，内容图之间有视觉多样性
 
-每张生成图片都要根据当页职责和参考素材用途动态编写 `verification_prompt`，并在同一次 `generate_image` 调用中核验；不得复用固定核验 prompt。只有服务端返回 `verification.passed=true` 才算通过。内容质量未通过时自动调整参考组合/顺序、生成 prompt、保持项/禁止项、构图复杂度或核验 prompt，并覆盖同一个 `output_path` 重试；核验服务不可用属于运行依赖失败，立即写 `failure-state.json` 并停止，不消耗后续图片生成。任何情况下都不得改用 `verify_with_vision=false` 绕过核验。每张输出图最多 3 次生成尝试，初次生成计入；该预算只用于核验服务正常时的内容质量修订，不适用于计费、配置、网络或其他运行依赖错误。耗尽后按关键失败与 warning 策略处理，不得请求用户决定。交付前检查目录，仅保留 `image-plan.md` 中列出的 N 张图（cover/image_01..03/tail），删除多余候选或旧版文件。
+需要内容质量审核时，逐张单独调用 `analyze_image`，根据当页职责检查可见主体、文字、构图和合规。内容问题可调整参考集合和创作 prompt 后覆盖同一 `output_path` 重试，每张最多 3 次；分析不可用不阻止继续生成后续计划图片。交付前仅保留 `image-plan.md` 列出的图片。
 
 ---
 
@@ -320,24 +324,24 @@ reference-usage-summary.json
 
 ## 图片生成方式
 
-通过 MCP 工具调用。**每次 `generate_image` 都必须传 `task_id=$TASK_ID`、`project_id=$PROJECT_ID`、`verify_with_vision=true` 和动态 `verification_prompt`**。服务端在一次调用中完成生成、登记和核验；`$TASK_ID`/`$PROJECT_ID` 由 seednote agent 一次解析、全程复用。
+通过 MCP 工具调用。每次 `generate_image` 只传当前图片的创作需求和语义相关参考。
 
 1. **规划参考子集**：读取 `image-plan.md`，为每张输出图确定 0、1 或多张相关原图；超过服务端上限时按当页相关性截取
-2. **生成封面（单张）**：调用 `generate_image`，`image_type` 设为 `"cover"`，只传封面相关的 `ref_image_paths`，并用封面职责生成独有 `verification_prompt`
-3. **逐张生成内容图（image_01.png 起，张数由信息点分组决定）**：逐张调用 `generate_image`，每张使用 `image-plan.md` 中对应的信息点构造 prompt 和核验 prompt，并只传当前页相关的 `ref_image_paths`；没有相关参考时纯文生图
-4. **单独生成尾图（仅当 `seednote_image_mode` 包含尾图时）**：调用 `generate_image`，只传尾图相关的 `ref_image_paths` 和尾图核验 prompt；没有相关参考时纯文生图；不含尾图则跳过
+2. **生成封面（单张）**：调用 `generate_image`，`image_type="cover"`，只传封面相关的 `ref_image_paths`
+3. **逐张生成内容图**：每张使用 `image-plan.md` 对应信息点构造创作 prompt，只传当前页相关的 `ref_image_paths`；没有相关参考时纯文生图
+4. **单独生成尾图**：仅当模式包含尾图时调用 `generate_image`，只传尾图相关参考和创作 prompt；否则跳过
 5. **保持原图与顺序**：不得传截图、拼图或转码替代文件；`ref_image_paths` 顺序与 prompt 中的参考图编号完全一致
 6. **带风格描述**：在 prompt 中加入风格描述（如"手绘感，暖色调，小清新"）
 
 **调用示例（封面，务必带上 task_id）**：
 
 ```
-generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="output/cover.png", verify_with_vision=true, verification_prompt=<封面动态核验提示词>)
+generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="$DIR/cover.png", size="3:4")
 ```
 
 内容图、尾图同理，逐张调用时只替换 `image_type` 与 `output_path`（如 `output/image_01.png`、`output/tail.png`），`task_id=$TASK_ID` 每张都必须带。托管运行时已提供 `output/`，因此 `output_path` 直接使用这些显式路径，服务端可登记为 task_file。
 
-**关键规则**：封面、内容图和尾图均不预设是否使用参考素材。每页根据 `image-plan.md` 独立选择 0、1 或多张原图；没有相关参考时使用纯文生图。项目级品牌参考图仍可作为旧数据来源，但不得覆盖本次输入附件中更具体、更新的产品事实。 每张图都使用独立 prompt、独立参考子集和独立核验结论；参考某张原图不等于复用它的全部场景或版式。
+**关键规则**：封面、内容图和尾图均不预设是否使用参考素材。每页根据 `image-plan.md` 独立选择 0、1 或多张原图；没有相关参考时使用纯文生图。项目级品牌参考图仍可作为旧数据来源，但不得覆盖本次输入附件中更具体、更新的产品事实。每张图都使用独立 prompt、独立参考子集和独立内容质量结论；参考某张原图不等于复用它的全部场景或版式。
 
 ### 春季花茶/白茶回归示例
 

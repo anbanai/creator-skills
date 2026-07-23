@@ -16,7 +16,7 @@ description: Use when generating multiple pose/expression variants from a single
 1. 用户/任务明确指定的 `image_ratio`、`size` 或平台规格优先。
 2. 项目/频道默认比例次之。
 3. 业务默认比例只作兜底：微信文章封面/正文图默认 `16:9`；Seednote/XLS/移动信息流默认 `3:4`；电商、广告投放、视频封面按具体平台素材位要求执行。
-4. 不得从模型路由、供应商默认 `size` 或模型能力反推业务比例；模型只决定能力和成本，比例属于创作场景约束。
+4. 不得从工具缺省值反推业务比例；比例只由用户、任务、项目或业务场景决定。
 
 
 ## MCP 工具
@@ -227,9 +227,9 @@ VARIANT_SERVER_PATH_i = result_i.file_path
 
 **5c. 本地文件 + prompt 备份**：
 
-- 下载 `DOWNLOAD_URL_i` 到 `output/variant_0i.png`
-- 把实际 prompt、image_type、size、output_path、ref_image_path、provider、model、response_type、revised_prompt、output_mime 追加到 `output/image-prompts.md`
-- 把 `VARIANT_SERVER_PATH_i` 追加到 `output/server-paths.md`
+- 下载 `DOWNLOAD_URL_i` 到 `$DIR/variant_0i.png`
+- 把图片文件名、用途和最终创作 prompt 追加到 `$DIR/image-prompts.md`；参考图选择和稳定顺序写入 `$DIR/selected-poses.md`
+- 把 `VARIANT_SERVER_PATH_i` 追加到 `$DIR/server-paths.md`
 
 **5d. 逐张身份审计**：
 
@@ -436,9 +436,9 @@ Background and clothing may vary slightly but the person MUST be identical.
 
 ### 单张变体完成后
 
-- [ ] `output/variant_0N.png` 实际下载到本地
-- [ ] `output/image-prompts.md` 已追加该张的完整 prompt + provider 元数据
-- [ ] `output/server-paths.md` 已记录 VARIANT_SERVER_PATH_N
+- [ ] `$DIR/variant_0N.png` 实际下载到本地
+- [ ] `$DIR/image-prompts.md` 已追加该张的文件名、用途和最终创作 prompt
+- [ ] `$DIR/server-paths.md` 已记录 VARIANT_SERVER_PATH_N
 - [ ] 逐张身份审计已通过（关键维度 PASS 或重试后接受）
 - [ ] `confirm_per_image=true` 时已得到用户确认
 

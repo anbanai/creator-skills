@@ -71,13 +71,13 @@ Use high / medium / low for soft dimensions and booleans for hard tests:
 }
 ```
 
-`overall_pass=true` only when all three hard tests are true and all soft dimensions are at least medium. **仅有旧的 6 维 vision 全 high 不得通过**; that proves style/shape quality, not click relevance.
+`overall_pass=true` only when all three hard tests are true and all soft dimensions are at least medium. **仅有旧的 6 维视觉评分全为 high 不得通过**; that proves style/shape quality, not click relevance.
 
 ## Failure Handling
 
 - Missing `cover_strategy`, `cover_concept_candidates`, or `cover_effectiveness_scorecard` blocks publishing.
 - `cover_effectiveness_scorecard.overall_pass=false` blocks publishing even if `visual_quality_scorecard.overall_pass=true`.
-- Vision JSON type mismatch, verification timeout, or missing effectiveness fields means the image is not approved. Do not manually `upload_image` and continue; re-run verification or rebuild the concept.
+- 分析能力不可用或有效性字段缺失时，图片不得通过。不要直接调用 `upload_image` 继续发布；应重新审核或重构概念。
 - 缺 `viral-audit.md` 不得发布. `viral-audit.md` must read `cover-prompt.md` and judge visual stay by relevance and click promise, not by style consistency alone.
 
 ## Current Failed Example

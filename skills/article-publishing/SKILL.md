@@ -16,7 +16,7 @@ description: 'Use when creating or managing WeChat news article drafts. Also use
 1. 用户/任务明确指定的 `image_ratio`、`size` 或平台规格优先。
 2. 项目/频道默认比例次之。
 3. 业务默认比例只作兜底：微信文章封面/正文图默认 `16:9`；Seednote/XLS/移动信息流默认 `3:4`；电商、广告投放、视频封面按具体平台素材位要求执行。
-4. 不得从模型路由、供应商默认 `size` 或模型能力反推业务比例；模型只决定能力和成本，比例属于创作场景约束。
+4. 不得从工具缺省值反推业务比例；比例只由用户、任务、项目或业务场景决定。
 
 
 ## MCP 工具
@@ -107,8 +107,8 @@ author 为空                         → 省略 author 字段（切勿用 write
 ## 完整发布工作流
 
 1. 调用 `render_template`（带 `layout_plan`）将 Markdown + 节奏计划确定性渲染为 WeChat HTML（替代旧的 `convert_markdown`）
-2. 调用 `generate_image`（带 `verify_with_vision=true, upload_to_cdn=true`）生成封面图——**生成与上传原子化**，同一调用内完成生成→校验→压缩→上传微信 CDN，直接返回 `media_id` + `wechat_url`（无需单独 `upload_image`）。**流水线场景**：步骤 6d 已取得封面 `media_id`，直接复用即可，跳过本步
-3. （仅当上一步返回 `upload_error` 时）调用 `upload_image(file_path="output/cover.png")` 单独重传获取 `media_id`，不重新生成
+2. 调用 `generate_image` 生成封面；如需质量审核则单独调用 `analyze_image`。**流水线场景**：已有封面 `media_id` 时直接复用，跳过本步
+3. 质量通过后调用 `upload_image` 取得 `media_id` + `wechat_url`。上传失败只重试上传，不重新生成
 4. 调用 `publish_draft` 创建草稿
 
 ## 流水线集成
@@ -117,11 +117,11 @@ author 为空                         → 省略 author 字段（切勿用 write
 
 | 前置产出 | 来源 | 用途 |
 |----------|------|------|
-| `output/05-article.html` | content-writing skill（通过 `render_template` 生成） | 作为 articles[0].content |
-| `output/cover.png` 的 `media_id` | article-visual-design skill（已通过 vision 校验） | 作为 articles[0].thumb_media_id |
-| `output/seo-result.md` | seo-optimization skill | 提取优化后的标题和摘要 |
-| `output/visual-rhythm-plan.md` | article-visual-design skill | 渲染审计参考（HTML 应已按 plan 渲染） |
-| `output/images.json` | article-visual-design skill | 视觉审计参考（含 vision 校验记录） |
+| `$DIR/05-article.html` | content-writing skill（通过 `render_template` 生成） | 作为 articles[0].content |
+| `$DIR/cover.png` 的 `media_id` | article-visual-design skill（已通过内容审核） | 作为 articles[0].thumb_media_id |
+| `$DIR/seo-result.md` | seo-optimization skill | 提取优化后的标题和摘要 |
+| `$DIR/visual-rhythm-plan.md` | article-visual-design skill | 渲染审计参考（HTML 应已按 plan 渲染） |
+| `$DIR/images.json` | article-visual-design skill | 视觉审计参考（含可见内容质量结论） |
 
 ## 发布前验证
 

@@ -18,7 +18,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 1. 用户/任务明确指定的 `image_ratio`、`size` 或平台规格优先。
 2. 项目/频道默认比例次之。
 3. 业务默认比例只作兜底：微信文章封面/正文图默认 `16:9`；Seednote/XLS/移动信息流默认 `3:4`；电商、广告投放、视频封面按具体平台素材位要求执行。
-4. 不得从模型路由、供应商默认 `size` 或模型能力反推业务比例；模型只决定能力和成本，比例属于创作场景约束。
+4. 不得从工具缺省值反推业务比例；比例只由用户、任务、项目或业务场景决定。
 
 
 ## 跳过条件（图片开关：封面关）
@@ -75,7 +75,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 - `cover_effectiveness_scorecard`：必须含 `information_scent_alignment`、`audience_motivation`、`content_specificity`、`thumbnail_attention`、`truthfulness_not_clickbait`、`brand_style_fit`、`visual_distinctiveness`、`safe_zone_text_policy`、`overall_pass`
 - 三个硬测试：`generic_swap_test`、`promise_proof_test`、`audience_motivation_test`
 
-封面必须先服务 `article_promise`、`target_reader` 和 `click_trigger`，再服务品牌风格。品牌统一不等于每篇都用同一张浅色水墨背景；同一批文章中，主体、隐喻、构图或色彩重心必须能区分。**仅有旧的 6 维 vision 全 high 不得通过**：缺 `cover_strategy` 或 `cover_effectiveness_scorecard.overall_pass=false` 时必须重构概念。
+封面必须先服务 `article_promise`、`target_reader` 和 `click_trigger`，再服务品牌风格。品牌统一不等于每篇都用同一张浅色水墨背景；同一批文章中，主体、隐喻、构图或色彩重心必须能区分。**仅有旧的 6 维视觉评分全为 high 不得通过**：缺 `cover_strategy` 或 `cover_effectiveness_scorecard.overall_pass=false` 时必须重构概念。
 
 ## 受控文字策略
 
@@ -85,7 +85,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 - **默认无字**：真实场景摄影、氛围意象、人物/物件特写、自然/生活方式画面，以及模型不稳定时。
 - **文字约束**：仅 2-8 个中文字或 1 个短标签；必须大而清晰，位于安全区内，避开底部 20%；禁止乱码、伪文字、水印、logo、密集排版、长段落。
 - **prompt 要求**：带字时明确写出需要出现的精确文字；无字时写明 `NO text, NO watermark, NO logo`。
-- **vision 校验**：必须检查文字是否短、清晰、准确、无乱码；文字失败时优先改为无字封面或重试。
+- **内容审核**：必须检查文字是否短、清晰、准确、无乱码；文字失败时优先改为无字封面或重试。
 - **反导流视觉禁区**：封面不得出现二维码、联系方式、外链 URL、扫码提示、跳转图标、加群、加微信、关注领资料或回复关键词等导流元素；出现即判定不通过并重试。
 ## 第一步：推导封面策略与三选一概念
 
@@ -99,7 +99,7 @@ description: 'Use when 微信公众号封面图（公众号头图）专用设计
 3. 生成至少 3 个 `cover_concept_candidates`，**先评审，不先画图**。每个候选必须写清：标题钩子、摘要承诺、正文证据、目标读者点击理由、可视化实体、误导风险、可替换性风险。
 4. 对 3 个候选执行 `generic_swap_test`、`promise_proof_test`、`audience_motivation_test`，选择评分最高且三项全过的 `selected_cover_concept`。任何“换到其他方法论文章也成立”的概念必须失败。
 5. 合成封面概念：`{selected_cover_concept} × {VISUAL_STYLE} × {COLOR_PALETTE} × {article_promise} × {click_trigger} × {thumbnail_strategy} × {宽银幕叙事构图 + 主体居中安全区}`。
-6. 提炼 `required_entities`（封面必须出现的具体物体，vision 校验依据）和 `anti_generic_constraints`（必须避免的同质化画面）。
+6. 提炼 `required_entities`（封面必须出现的具体物体，内容审核依据）和 `anti_generic_constraints`（必须避免的同质化画面）。
 
 ## 第二步：构建封面 prompt
 
@@ -125,7 +125,7 @@ NO logo.
 
 ## 第三步：构建公众号封面质量评分卡（生成前就绪）
 
-服务端 `verify_with_vision=true` 时要求 `verification_prompt` 非空。封面用专用评分卡（对应上方映射表）：
+质量评分卡作为独立 `analyze_image` 的审核 prompt，在图片生成前准备好：
 
 ```
 这是文章《$ARTICLE_TITLE》的公众号封面（将用于订阅号列表 2.35:1 + 转发卡 1:1）。
@@ -190,7 +190,7 @@ digest 钩子：$DIGEST_HOOK；封面钩子：$COVER_HOOK。
 }
 ```
 
-## 第四步：生成（生成与上传原子化）
+## 第四步：生成、独立审核与上传
 
 ```
 generate_image(
@@ -199,30 +199,27 @@ generate_image(
   image_type="cover",
   output_path="output/cover.png",
   task_id=$TASK_ID,
-  size="21:9",
-  verify_with_vision=true,
-  verification_prompt=<第三步的评分卡>,
-  upload_to_cdn=true
+  size="21:9"
 )
 ```
 
 - `size="21:9"` 是生成提示比；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383**（你无需管最终比例）。
-- `upload_to_cdn=true`：vision 校验通过才上传，同一调用内完成「生成→裁剪→校验→上传」，直接返回 `media_id`（发布草稿的 thumb）+ `wechat_url`；校验未通过则**不上传**（不浪费微信素材位）。
-- 返回 `upload_error`（生成成功但上传失败）→ 用 `upload_image(file_path="output/cover.png")` 单独重传，**无需重新生成**。
+- `generate_image` 成功后单独调用 `analyze_image` 执行评分卡；通过后再单独调用 `upload_image` 取得 `media_id` 和 `wechat_url`。上传失败只重试上传。
+- `upload_image` 失败时保留已生成图片，只重试上传，无需重新生成。
 
 ## 第五步：迭代闭环
 
-读 `generate_image` 返回的 `verification` 对象（服务端归一化字段 `passed`/`score`/`missing_entities`/`notes`/`raw`）：
+单独调用 `analyze_image`，由 Agent 根据评分卡与可见内容作出判断：
 
-- `passed=true` → 通过，进入第六步。
-- `passed=false` → 按 `notes` / `sharper_prompt_hint` 锐化 prompt 重试，**最多 3 次**（共 3 次尝试）。锐化策略：
+- 质量要求全部满足 → 通过，进入第六步。
+- 存在不通过项 → 根据可见问题锐化 prompt 重试，**最多 3 次**（共 3 次尝试）。锐化策略：
   - 在 prompt 开头加 `MAIN SUBJECT: <具体物体>`，强化主体权重；
   - 把隐喻改得更具体（材质/颜色/方位/数量）；
   - 若失败原因是"通用养生水墨背景"、低对比、标题/封面/digest 不协同、读者动机弱、正文证据不足、系列辨识度低，必须先改 `cover_strategy` / `selected_cover_concept` / `cover_hook` / `visual_metaphor` / `thumbnail_strategy`，不要只换风格形容词；
   - 收紧「主体居中安全区 + 避开底部 20%」；
   - 按受控文字策略修正：文字乱码/过密则改为无字或缩短为精确短词；始终强化 `NO watermark, NO logo`。
-- vision JSON 类型不匹配、校验超时、缺 `cover_effectiveness_scorecard`、三个硬测试任一失败、或 `cover_effectiveness_scorecard.overall_pass=false` → 不得手动 `upload_image` 后继续发布；必须重新校验或回到第一步重构概念。
-- 3 次仍不过 → **暂停并请求用户协助**，**不得**用未通过 vision 的封面发布。
+- 分析调用失败、缺 `cover_effectiveness_scorecard`、三个硬测试任一失败、或 `cover_effectiveness_scorecard.overall_pass=false` → 不得调用 `upload_image` 后继续发布；必须重新审核或回到第一步重构概念。
+- 3 次仍不过 → **暂停并请求用户协助**，**不得**用未通过内容审核的封面发布。
 
 ## 第六步：落盘审计（cover-prompt.md，硬性）
 
@@ -236,12 +233,12 @@ generate_image(
 - **缩略图策略与反同质化约束**：`thumbnail_strategy`、`anti_generic_constraints`。
 - **`required_entities`**：封面必须出现的具体物体列表。
 - **最终 prompt**：实际传给 `generate_image` 的完整 prompt。
-- **封面质量评分卡**：`visual_quality_scorecard` + vision prompt + 结果（passed/score/各维度/missing_or_forbidden）。
-- **封面有效性评分卡**：`cover_effectiveness_scorecard` + `generic_swap_test` / `promise_proof_test` / `audience_motivation_test` 结果；仅有旧的 6 维 vision 全 high 不得通过。
+- **封面质量评分卡**：`visual_quality_scorecard` + 内容审核 prompt + Agent 的可见内容质量结论。
+- **封面有效性评分卡**：`cover_effectiveness_scorecard` + `generic_swap_test` / `promise_proof_test` / `audience_motivation_test` 结果；仅有旧的 6 维视觉评分全为 high 不得通过。
 
 **产出**：`output/cover.png`、`media_id`、`$COVER_CDN_URL`、`output/cover-prompt.md`。
 
-**注意**：封面仅用于 `thumb_media_id`，**不得复用为正文内容图**。正文每张图的 `wechat_url` 必须各自独立生成上 CDN——服务端 `publish_draft` 会硬拦截「正文 ≥2 图但唯一 URL==1」的草稿。
+**注意**：封面仅用于 `thumb_media_id`，**不得复用为正文内容图**。正文每张图必须独立生成并调用 `upload_image` 取得自己的 `wechat_url`——服务端 `publish_draft` 会硬拦截「正文 ≥2 图但唯一 URL==1」的草稿。
 
 ---
 
