@@ -154,7 +154,7 @@ Phase 4: 配图生成与独立内容审核
 - **生成调用**：`generate_image(project_id=$PROJECT_ID, task_id=$TASK_ID, prompt=<封面提示词>, image_type="cover", output_path="$DIR/cover.png", size="21:9")`；需要质量审核时单独调用 `analyze_image`，通过后调用 `upload_image`。
   - `size="21:9"` 是接近业务目标的生成提示比；**服务端按 `platform=article + image_type=cover` 把成品精确裁到 900×383 并像素断言**——微信零裁剪，告别「需要手动裁剪的纯图」。
 
-- **质量评分卡不过** → 根据可见问题锐化 prompt 重试，最多 3 次；仍不过请求用户协助，**不得**用未通过封面发布。
+- **质量评分卡不过** → 根据可见问题锐化 prompt 重试，最多 3 次；耗尽后保留已有产物并写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_cover_quality_failed","message":"封面在限定创作重试后仍未通过质量评分卡","resume_from":"image_generation"}`，结束当前托管执行；不得请求用户协助，**不得**用未通过封面发布。
 - 详细推导链、6 维评分卡模板、迭代策略、`cover-prompt.md` 审计见 [article-cover-design/SKILL.md](../article-cover-design/SKILL.md)；三维风格方向参考见 [references/cover.md](references/cover.md)。
 
 **产出**：`output/cover.png`, `media_id`, `$COVER_PATH`
@@ -320,6 +320,7 @@ analyze_image(
 - 单图失败 → 重试或降级标记
 - 节奏/模板违规 → 回到 Phase 0 重新规划
 - 内容审核通过率 < 80% → 检查 prompt 构建逻辑，必要时回退到 Phase 3 重新规划
+- 超过一半章节配图在各自限定重试后仍失败 → 保留已有产物并写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_content_images_failed","message":"超过一半章节配图在限定重试后仍失败","resume_from":"image_generation"}`，结束当前托管执行，不得请求用户协助
 
 ---
 

@@ -219,7 +219,7 @@ generate_image(
   - 收紧「主体居中安全区 + 避开底部 20%」；
   - 按受控文字策略修正：文字乱码/过密则改为无字或缩短为精确短词；始终强化 `NO watermark, NO logo`。
 - 分析调用失败、缺 `cover_effectiveness_scorecard`、三个硬测试任一失败、或 `cover_effectiveness_scorecard.overall_pass=false` → 不得调用 `upload_image` 后继续发布；必须重新审核或回到第一步重构概念。
-- 3 次仍不过 → **暂停并请求用户协助**，**不得**用未通过内容审核的封面发布。
+- 3 次仍不过 → 保留已有产物并写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_cover_quality_failed","message":"封面在限定创作重试后仍未通过内容审核","resume_from":"image_generation"}`，结束当前托管执行；不得请求用户协助，**不得**用未通过内容审核的封面发布。
 
 ## 第六步：落盘审计（cover-prompt.md，硬性）
 

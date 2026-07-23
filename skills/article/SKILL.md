@@ -213,7 +213,7 @@ generate_image(
 - [ ] **CDN 持久化**：`images.json` 每条都有非空 `wechat_url`（即每张图已上微信 CDN）
 - [ ] **正文图片互不相同**：`images.json` 中所有内容图的 `wechat_url` 两两不同，且没有任何一张等于封面 `$COVER_CDN_URL`（封面只能用于 `thumb_media_id`，**不得复用为正文图**）；服务端 `publish_draft` 会硬拦截"正文 ≥2 图但唯一 URL==1"的草稿，配图失败时宁可缺图降级也不得用封面/他图顶替
 
-未通过检查时按问题类型处理：单图失败降级、节奏/模板违规回步骤 6a/b、内容审核通过率 <80% 回步骤 6e。**超过一半章节配图失败则暂停流程请求用户协助**。
+未通过检查时按问题类型处理：单图失败降级、节奏/模板违规回步骤 6a/b、内容审核通过率 <80% 回步骤 6e。超过一半章节配图在各自限定重试后仍失败时，按“错误处理”写入 `article_content_images_failed` 失败态并从 `image_generation` 恢复。
 
 **产出**：更新后的 `output/04-article-final.md`（含 CDN 图片链接）、`output/images.json`、回填后的 `output/visual-rhythm-plan.md`
 
@@ -294,7 +294,7 @@ using the article-publishing skill 创建 `draft.json` 并发布：
 - **禁止多张正文图共用同一 wechat_url**：服务端 `publish_draft` 会硬拦截"正文 ≥2 图但唯一 URL==1"的草稿。
 - **正文全图相同时不得发布**：服务端发布前会做图片去重硬拦截；配图失败时宁可缺图降级，也不得用封面/他图顶替。
 - **封面必须通过内容审核与有效性检查**才可作为 `thumb_media_id`（仅封面开关开启时）；仅有旧的 6 维视觉评分全为 high 不得通过。缺 `cover_strategy`、缺 `cover_effectiveness_scorecard` 或 `cover_effectiveness_scorecard.overall_pass=false` 均不得发布。
-- **超过一半章节配图失败**：暂停流程，请求用户协助（不得用降级顶替方式强行凑齐）。
+- **超过一半章节配图失败**：保留已生成产物，写入 `article_content_images_failed` 失败态并结束当前托管执行；不得用降级顶替方式强行凑齐。
 - **内容审核通过率 < 80%**：回到步骤 6e 检查 prompt 构建逻辑，不得直接发布。
 - **HTML 主路径必须用 `render_template`**（带 `layout_plan`）；`convert_markdown` 仅作旧版 server 兼容降级，不得作主渲染路径。
 - **导流风险必须清零**：不得出现二维码、联系方式、外链 URL、扫码进群、加微信、关注/点赞/留言/转发领资料、回复关键词、跳小程序/其他账号或多重跳转交易。发现后自动调整，不作为任务失败。
@@ -344,11 +344,11 @@ using the article-publishing skill 创建 `draft.json` 并发布：
 |------|----------|
 | **选题与历史文章重复** | 自动跳过重复选题，选择次优候选 |
 | **文章结构不清晰** | 自动匹配结构模板，确保至少 3 个二级标题 |
-| **封面生成失败** | 重试两次（不同 prompt 措辞），仍失败则请求用户协助 |
-| **封面内容审核未通过** | 重试一次（锐化 prompt），仍失败请求用户协助；不得用未通过内容审核的封面发布 |
+| **封面生成失败** | 重试两次（不同 prompt 措辞）；仍失败则写 `article_cover_generation_failed` 失败态，从 `image_generation` 恢复 |
+| **封面内容审核未通过** | 按 `article-cover-design` 的三次创作预算锐化 prompt；耗尽后写 `article_cover_quality_failed` 失败态，不得用未通过封面发布 |
 | **配图提示词设计质量差** | 提示词必须引用章节具体内容，使用 ref_image_path 保持风格一致 |
 | **单张配图生成失败** | 重试一次（更换提示词），仍失败则标记该章节缺图，继续后续章节 |
-| **超过一半章节配图失败** | 暂停流程，请求用户协助 |
+| **超过一半章节配图失败** | 写 `article_content_images_failed` 失败态，从 `image_generation` 恢复，不得请求用户协助 |
 | **正文图片全图相同 / 复用封面 URL** | 服务端 `publish_draft` 硬拦截；为每个 slot 独立 `generate_image` 后独立 `upload_image`，不得用封面/他图顶替 |
 | **AI 去痕过度** | 由 `humanizer` skill draft→audit→final 改写，保留人称/情绪/细节等人味 |
 | **违禁词检测误报** | 记录疑似词，人工复核标记，不自动删除 |
@@ -391,9 +391,9 @@ using the article-publishing skill 创建 `draft.json` 并发布：
 
 **非关键步骤失败**（SEO优化、AI去痕）：记录问题，使用降级方案继续，在最终报告中说明。
 
-**配图步骤失败**（单张配图生成失败）：重试一次（锐化 prompt 后），仍失败则记录该章节缺少配图继续后续章节。如果超过一半章节配图失败，暂停流程请求用户协助。
+**配图步骤失败**（单张配图生成失败）：重试一次（锐化 prompt 后），仍失败则记录该章节缺少配图继续后续章节。如果超过一半章节配图在各自限定重试后仍失败，保留已有产物并写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_content_images_failed","message":"超过一半章节配图在限定重试后仍失败","resume_from":"image_generation"}`。
 
-**关键步骤失败**（封面生成、草稿创建）：暂停流程，分析原因，尝试重试一次，仍失败则请求用户协助。
+**关键步骤失败**（封面生成、草稿创建）：封面生成沿用步骤 6 的两次自动重试，耗尽后写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_cover_generation_failed","message":"封面生成在限定重试后仍失败","resume_from":"image_generation"}`。草稿创建自动重试一次，仍失败则写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"publishing","error_code":"article_draft_creation_failed","message":"草稿创建在限定重试后仍失败","resume_from":"publishing"}`。封面质量创作预算耗尽时使用 `error_code=article_cover_quality_failed`、`resume_from=image_generation`。以上失败都保留已有产物并结束当前托管执行，不得请求用户协助，也不得伪造成功。
 
 **配置问题**：假定配置已正确设置，不要尝试验证配置。如果 MCP 工具因配置问题失败，直接报告错误信息并继续流程。
 
