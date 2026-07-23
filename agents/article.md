@@ -368,7 +368,7 @@ generate_image(
 - [ ] **CDN 持久化**：`images.json` 每条都有非空 `wechat_url`（即每张图已独立上传到微信 CDN）；缺 `wechat_url` 的 slot 只重试 `upload_image`，不得重新生成
 - [ ] **正文图片互不相同**：`images.json` 中所有内容图的 `wechat_url` 两两不同，且没有任何一张等于封面 `$COVER_CDN_URL`（封面只能用于 `thumb_media_id`，**不得复用为正文图**）；服务端 `publish_draft` 会硬拦截"正文 ≥2 图但唯一 URL==1"的草稿，配图失败时宁可缺图降级也不得用封面/他图顶替
 
-未通过检查时按问题类型处理：单图失败降级、节奏/模板违规回 Phase 0、内容审核通过率不足回 Phase 3。超过一半章节配图失败则暂停流程请求用户协助。
+未通过检查时按问题类型处理：单图失败降级、节奏/模板违规回 Phase 0、内容审核通过率不足回 Phase 3。超过一半章节配图在各自限定重试后仍失败时，保留已生成产物，写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_content_images_failed","message":"超过一半章节配图在限定重试后仍失败","resume_from":"image_generation"}`，结束当前托管执行并等待从 `image_generation` 恢复，不得请求用户协助。
 
 **产出**：更新后的 `output/04-article-final.md`（含 CDN 图片链接）、`output/images.json`、回填后的 `output/visual-rhythm-plan.md`
 
@@ -493,10 +493,10 @@ Call `update_task_progress(task_id=$TASK_ID, stage="draft", title="草稿创建"
 | **内容脱离用户需求或账号定位** | 使用 `context-brief.md` 锚定用户需求、项目定位、历史避重和章节锚点 |
 | **文章空泛无具体素材** | `content-quality-report.md` 检查每章具体素材，不通过则回到步骤 3/4 重写 |
 | **文章结构不清晰** | 自动匹配结构模板，确保至少 3 个二级标题 |
-| **封面生成失败** | 重试两次（不同 prompt 措辞），仍失败则请求用户协助 |
+| **封面生成失败** | 重试两次（不同 prompt 措辞）；仍失败则保留产物并写结构化 `failure-state.json`（`error_code=article_cover_generation_failed`、`resume_from=image_generation`），结束当前托管执行 |
 | **配图提示词设计质量差** | 提示词必须引用章节具体内容，使用 ref_image_path 保持风格一致 |
 | **单张配图生成失败** | 重试一次（更换提示词），仍失败则标记该章节缺图，继续后续章节 |
-| **超过一半章节配图失败** | 暂停流程，请求用户协助 |
+| **超过一半章节配图失败** | 保留已生成产物并写结构化 `failure-state.json`（`error_code=article_content_images_failed`、`resume_from=image_generation`），结束当前托管执行，不得请求用户协助 |
 | **去 AI 过度改写丢信息** | `humanizer` skill 改写而非删除，保留人称代入/情绪节奏/具体细节，覆盖全部信息点 |
 | **违禁词检测误报** | 记录疑似词，人工复核标记，不自动删除 |
 | **HTML 转换失败** | 检查 Markdown 格式，修复语法错误后重试 |
@@ -606,13 +606,13 @@ Call `update_task_progress(task_id=$TASK_ID, stage="draft", title="草稿创建"
 - 重试一次（更换提示词措辞后重试）
 - 仍失败则记录该章节缺少配图，继续后续章节
 - 在最终报告中标注哪些章节缺少配图
-- 如果超过一半章节配图失败，暂停流程请求用户协助
+- 如果超过一半章节配图在限定重试后仍失败，保留已生成产物并写入 `failure-state.json`（`error_code=article_content_images_failed`、`resume_from=image_generation`），结束当前托管执行
 
 **关键步骤失败**（封面生成、草稿创建）：
 
-- 暂停流程，分析原因
-- 尝试重试一次
-- 仍失败则请求用户协助
+- 封面生成沿用步骤 6 的两次自动重试；耗尽后写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"image_generation","error_code":"article_cover_generation_failed","message":"封面生成在限定重试后仍失败","resume_from":"image_generation"}`
+- 草稿创建自动重试一次；仍失败则写入 `$DIR/failure-state.json`：`{"version":"1.0","status":"recoverable_failure","stage":"publishing","error_code":"article_draft_creation_failed","message":"草稿创建在限定重试后仍失败","resume_from":"publishing"}`
+- 两类失败都保留已有产物并结束当前托管执行，等待从 `resume_from` 恢复；不得请求用户协助，也不得伪造成功
 
 **质量审阅未通过**（内容质量、视觉审计、发布前总验收）：
 

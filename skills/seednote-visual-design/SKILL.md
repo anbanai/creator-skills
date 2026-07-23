@@ -56,7 +56,7 @@ description: 'Use when creating seednote visual content including covers, conten
 5. **生成记录**：`$DIR/image-prompts.md` 每张图片只写文件名、用途和最终创作提示词。
 6. **质量复盘**：如工作流需要内容质量审核，生成后单独调用 `analyze_image`；`$DIR/image-review.md` 只记录可见主体、文字、构图和合规观察。
 
-只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段。`analyze_image` 不可用或结果异常不能把已成功的生成判为失败，也不能阻止继续生成后续计划图片；运行错误写入 `failure-state.json` 或保留在服务端观测记录中，不能写入 `image-review.md`。
+只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `$DIR/image-review.md` 和 `$DIR/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。原始运行错误只保留在服务端观测记录中，不写入内容质量结论。
 
 `failure-state.json` 必须是结构化可恢复失败态：
 
@@ -84,7 +84,7 @@ description: 'Use when creating seednote visual content including covers, conten
 
 4. 调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。
 5. 按 `image-plan.md` 生成全部计划图片。单张生成失败时保留已有文件，写 `failure-state.json` 并停止。
-6. 内容质量审核由 Agent/Skill 决定。需要时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`；分析异常不能让生成失败，也不能阻止继续生成后续计划图片。
+6. 内容质量审核由 Agent/Skill 决定。需要时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`；`analyze_image` 传输或运行失败只写“审核不可用” warning，不创建失败态、不阻止继续生成，也不单独影响最终交付。
 7. 内容问题可调整参考组合/顺序和创作 prompt 后重新生成，单张最多 3 次。
 8. 写出 `reference-usage-summary.json`，只记录素材用途、选择依据与内容质量结论。
 <!-- seednote-reference-contract:end -->
@@ -133,7 +133,7 @@ reference-usage-summary.json
 
 执行预算固定为：每张输入图最多 3 次理解尝试；内容问题需要修订时，每张输出图最多 3 次生成尝试。不得向用户发起中途确认。
 
-关键内容问题包括：唯一产品身份、Logo、包装、型号或核心结构证据不可用；身份或结构幻觉；冲突版本融合；出现禁止内容；页面无法履行职责。分析或内容质量结果只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败。非关键氛围或轻微构图问题只记录 warning，不得把它升级成需要用户中途决策的阻塞。始终保留已生成文件和 trace artifacts。
+关键内容问题包括：唯一产品身份、Logo、包装、型号或核心结构证据不可用；身份或结构幻觉；冲突版本融合；出现禁止内容；页面无法履行职责。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；整体质量闸门只评估已取得的可见内容质量结论和每张输出图的 `quality_status`，审核不可用 warning 不计为质量失败。非关键氛围或轻微构图问题只记录 warning，不得把它升级成需要用户中途决策的阻塞。始终保留已生成文件和 trace artifacts。
 
 ---
 

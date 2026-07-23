@@ -79,7 +79,7 @@ output directory. TASK_ID is supplied by structured runtime context.
 
    调用 `generate_image` 时只传当前输出图相关的原始路径，数组顺序必须与 prompt 中“参考图 1、参考图 2”一致。
 6. 按 `image-plan.md` 顺序调用 `generate_image` 生成全部计划图片。单张生成失败时写 `failure-state.json` 并停止在图片阶段；已成功生成的文件必须保留。
-7. 内容质量审核是 Agent/Skill 的独立工作流决策。需要审核时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`。分析不可用或返回异常不能把 `generate_image` 判为失败，也不能阻止继续生成后续计划图片。
+7. 内容质量审核是 Agent/Skill 的独立工作流决策。需要审核时，图片生成成功后单独调用 `analyze_image`，把可见主体、文字、构图和合规观察写入 `image-review.md`。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `image-review.md` 和 `reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止继续生成后续计划图片，也不能单独导致最终交付失败。
 8. 审核指出内容问题时，可调整参考组合/顺序和创作 prompt 后重新生成，单张最多 3 次；不得请求用户决定参考组合或创作修订。
 9. 写出 `reference-usage-summary.json`。关键事实无法保证时记录失败或风险；非关键氛围或轻微构图问题记录 warning。
 <!-- seednote-reference-contract:end -->
@@ -131,7 +131,7 @@ reference-usage-summary.json
 
 执行预算固定为：每张输入图最多 3 次理解尝试；内容问题需要重生成时，每张输出图最多 3 次生成尝试，首次生成计入。不得向用户发起中途确认，也不得把参考素材选择或创作修订决策转交给用户。
 
-关键内容问题包括：唯一产品身份、Logo、包装、型号或核心结构证据不可用；身份或结构幻觉；冲突版本融合；出现禁止内容；页面无法履行职责。分析或内容质量结果只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败。非关键氛围或轻微构图问题只记录 warning，不得把它升级成需要用户中途决策的阻塞。始终保留已生成文件和 trace artifacts。
+关键内容问题包括：唯一产品身份、Logo、包装、型号或核心结构证据不可用；身份或结构幻觉；冲突版本融合；出现禁止内容；页面无法履行职责。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；整体质量闸门只评估已取得的可见内容质量结论和每张输出图的 `quality_status`，审核不可用 warning 不计为质量失败。非关键氛围或轻微构图问题只记录 warning，不得把它升级成需要用户中途决策的阻塞。始终保留已生成文件和 trace artifacts。
 
 任何需要停止的运行依赖失败都必须写入 `output/failure-state.json`，字段固定为 `version`、`status=recoverable_failure`、`stage`、`error_code`、`message`、`resume_from`。结构化运行时上下文不可用时由托管 Runner 直接终止；不得伪造成功产物。
 
@@ -213,7 +213,7 @@ reference-usage-summary.json
 
 #### 步骤 8a：原创模式图片生成
 
-原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `$DIR/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `$DIR/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断，分析异常不能让已成功的生成失败，也不能阻塞后续图片。只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。分析或内容质量结果只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败。
+原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `$DIR/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `$DIR/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断。`analyze_image` 传输或运行失败只记录为“审核不可用” warning，写入 `$DIR/image-review.md` 和 `$DIR/reference-usage-summary.json` 的 `warnings`；不得写入 `failure-state.json`，不能阻止后续计划图片生成，也不能单独导致最终交付失败。只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。可用的分析结果或可见内容质量结论只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败；审核不可用 warning 不计为质量失败。
 
 **产出**：`output/image-plan.md`、`output/cover.png`、内容图（按 `seednote_image_mode`）、尾图（按 `seednote_image_mode`）
 
@@ -237,7 +237,7 @@ reference-usage-summary.json
 
 #### 步骤 10：交付校验
 
-调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `$DIR/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `$DIR`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 仅记录可见内容质量观察；运行错误写入 `failure-state.json` 或保留在服务端观测记录中。所有产物始终保留在 `$DIR`，不得移动、复制或按标题重命名成果目录。`failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `$DIR/failure-state.json`。
+调用 `update_task_progress(task_id=$TASK_ID, stage="delivery_validation", title="交付校验", description="校验任务成果目录中的最终产物")`。再次确认 `$DIR/content.md` 第一行等于已接受 `$FINAL_TITLE`，并逐项校验 `content.md`、`image-plan.md`、`image-prompts.md`、`image-review.md`、`reference-usage-summary.json`、合规报告（复刻模式）以及计划中的全部图片都直接位于 `$DIR`。图片数量必须与计划一致；每张计划图片都必须成功生成。`image-review.md` 记录可见内容质量观察和“审核不可用” warning；`analyze_image` 运行错误只保留在服务端观测记录中，不创建失败态，也不单独让交付校验失败。所有产物始终保留在 `$DIR`，不得移动、复制或按标题重命名成果目录。`failure-state.json` 存在时不得报告成功；恢复执行仅在所有交付校验通过后、即将报告成功前删除 `$DIR/failure-state.json`。
 
 **产出**：`output`
 
@@ -274,7 +274,7 @@ reference-usage-summary.json
 | 选题评分无高分候选 | 自动选择最高分选题，在 `topic-analysis.md` 记录评分分布 |
 | 参考素材不可用 | 非关键素材记录 warning；唯一产品身份、Logo、包装、型号或核心结构证据不可用时保留产物并进入可恢复失败态 |
 | 图片生成失败 | 保留已生成图片并写 `failure-state.json`，从当前图片恢复 |
-| 内容审核调用失败 | 继续生成后续计划图片；审核错误只写 `failure-state.json` 或服务端观测记录，`image-review.md` 只保留可见内容质量观察 |
+| 内容审核调用失败 | 在 `image-review.md` 和 `reference-usage-summary.json` 的 `warnings` 记录“审核不可用”，继续生成后续计划图片；不写 `failure-state.json`，不单独导致最终交付失败，原始错误只保留在服务端观测记录中 |
 | 源笔记获取失败 | 重新获取 token 后重试一次；仅有外部 ID/链接且仍无源内容时写失败态并停止 |
 | 爆款拆解证据不足 | 写入 missing_data，降低 confidence，默认推荐 `style-only` |
 | 复刻模板置信度低或视觉证据不足 | 记录原因并按 `style-only` 处理 |
