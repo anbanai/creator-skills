@@ -213,7 +213,7 @@ reference-usage-summary.json
 
 #### 步骤 8a：原创模式图片生成
 
-原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `$DIR/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，审核结果只影响 Agent 的创作修订和交付判断，分析异常不能让已成功的生成失败，也不能阻塞后续图片。图像生成失败或创作重试预算耗尽时写 `$DIR/image-review.md` 和 `$DIR/failure-state.json` 后停止。
+原创模式调用 `update_task_progress(task_id=$TASK_ID, stage="image_generation", title="图片生成", description="基于已锁定标题规划并生成封面、内容图和尾图")`。按 `seednote-visual-design` 方法读取 `$DIR/content.md`、图片模式和附件索引，完成逐页参考选择、图片规划、生成与核验。按计划逐张调用 `generate_image`；生成成功后继续下一张。需要内容质量审核时单独调用 `analyze_image`，把可见内容质量观察写入 `$DIR/image-review.md`；审核结果只影响 Agent 的创作修订和交付判断，分析异常不能让已成功的生成失败，也不能阻塞后续图片。只有 `generate_image` 本身失败或超时时，才写入 `$DIR/failure-state.json` 并停止图片阶段；已成功生成的文件必须保留。分析或内容质量结果只影响当前输出图的记录与创作重试；当前图达到创作重试上限时标记 `quality_status=failed`，必须继续生成剩余计划图片。全部计划图片生成完成后再执行整体质量闸门，决定是否交付或写入结构化失败。
 
 **产出**：`output/image-plan.md`、`output/cover.png`、内容图（按 `seednote_image_mode`）、尾图（按 `seednote_image_mode`）
 
