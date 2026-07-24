@@ -56,6 +56,7 @@ if failure_path.is_file():
 output_dir = root / "output"
 seednote_dir = output_dir
 missing: list[str] = []
+actual_image_names: list[str] = []
 
 required_artifacts = {
     "content.md": "最终正文",
@@ -105,6 +106,7 @@ if plan_path.is_file():
         images = content_images + [
             p for name in ("cover.png", "tail.png") if (p := seednote_dir / name).is_file()
         ]
+        actual_image_names = sorted(p.name for p in images)
         image_count = len(images)
         if image_count != expected:
             missing.append(f"图片数量（当前 {image_count} 张，应等于 image-plan.md 声明的 {expected} 张）")
@@ -122,11 +124,29 @@ if summary_path.is_file():
         if not isinstance(outputs, list) or not outputs:
             missing.append("reference-usage-summary.json.outputs 为空，未记录逐图内容质量结论")
         else:
+            summary_image_names: list[str] = []
             for output in outputs:
-                filename = output.get("file_name") or "<unknown>"
+                if not isinstance(output, dict):
+                    missing.append("reference-usage-summary.json.outputs 含非对象条目")
+                    continue
+                filename = output.get("file_name")
+                if not isinstance(filename, str) or not filename.strip():
+                    missing.append("reference-usage-summary.json.outputs 含缺失 file_name 的条目")
+                    filename = "<unknown>"
+                else:
+                    filename = filename.strip()
+                    summary_image_names.append(filename)
                 quality_status = output.get("quality_status")
                 if quality_status != "accepted":
                     missing.append(f"{filename} 内容质量状态未通过（quality_status={quality_status or 'missing'}）")
+            if (
+                len(summary_image_names) != len(set(summary_image_names))
+                or sorted(summary_image_names) != actual_image_names
+            ):
+                missing.append(
+                    "reference-usage-summary.json.outputs 必须与实际图片唯一且完全一致"
+                    f"（汇总 {summary_image_names}，实际 {actual_image_names}）"
+                )
 
 if missing:
     block(

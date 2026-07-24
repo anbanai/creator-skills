@@ -4,6 +4,13 @@ All notable changes to the Anban Creator Claude Code plugin are documented here.
 
 This project follows semantic versioning for the plugin package. Patch releases cover documentation, compatibility, hook, and workflow contract fixes that do not change the public agent or MCP behavior.
 
+## [4.0.5] - 2026-07-24
+
+### Fixed
+
+- Required the Seednote quality summary to list every generated image exactly once and reject missing, duplicate, or extra entries.
+- Aligned the Claude and Codex Article workflows on the managed project ID context wording used by the server contract.
+
 ## [4.0.4] - 2026-07-24
 
 ### Fixed
